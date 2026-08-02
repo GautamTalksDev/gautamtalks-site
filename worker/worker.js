@@ -45,7 +45,28 @@ const validEmail = (e) =>
   e.length <= 254 &&
   /^[^\s@,;:<>"'()\[\]\\]+@[^\s@.]+(\.[^\s@.]+)+$/.test(e);
 
-const normalize = (e) => e.trim().toLowerCase();
+// Alias-proof normalization. Prevents one person taking many "different" slots
+// with plus-tags (you+1@), dots (y.o.u@gmail), or provider-equivalent domains.
+const GMAILISH = new Set(["gmail.com", "googlemail.com"]);
+const DOT_INSENSITIVE = new Set(["gmail.com", "googlemail.com"]);
+const normalize = (raw) => {
+  let e = String(raw).trim().toLowerCase();
+  const at = e.lastIndexOf("@");
+  if (at < 1) return e;
+  let local = e.slice(0, at);
+  let domain = e.slice(at + 1);
+  if (GMAILISH.has(domain)) domain = "gmail.com";
+  local = local.split("+")[0];                 // strip plus-tag on every provider
+  if (DOT_INSENSITIVE.has(domain)) local = local.replace(/\./g, "");
+  return `${local}@${domain}`;
+};
+
+// Throwaway-inbox domains: a newsletter list full of these is worthless.
+const DISPOSABLE = new Set([
+  "mailinator.com","guerrillamail.com","10minutemail.com","tempmail.com",
+  "throwawaymail.com","yopmail.com","trashmail.com","sharklasers.com",
+  "getnada.com","temp-mail.org","fakeinbox.com","maildrop.cc","dispostable.com"
+]);
 
 async function verifyTurnstile(token, ip, secret) {
   if (!secret) return true; // captcha optional until you add the key
@@ -69,6 +90,81 @@ async function rateLimit(env, ip) {
   if (hits >= 5) return false; // 5 submissions / hour / IP
   await env.RATE.put(key, String(hits + 1), { expirationTtl: 3600 });
   return true;
+}
+
+
+/* ── Branded confirmation email ──────────────────────────────────────────
+   Table-based layout with inline styles: the only thing that renders
+   reliably across Gmail, Outlook, and Apple Mail. Dark card, sun-yellow
+   button, same voice as the site. */
+function confirmEmailHTML(link) {
+  const INK = "#16151c", PAPER = "#f7f4ec", SUN = "#ffd23f", COBALT = "#2e3df0", MUTE = "#6b6a72";
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Confirm your spot</title></head>
+<body style="margin:0;padding:0;background:${PAPER};">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">One click and the Climb Log is yours.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${PAPER};padding:32px 16px;">
+<tr><td align="center">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+
+    <tr><td style="padding-bottom:18px;font:700 15px/1 Arial,Helvetica,sans-serif;color:${INK};letter-spacing:.5px;">
+      GAUTAM <span style="color:${COBALT};">&#9889;</span> TALKS
+    </td></tr>
+
+    <tr><td style="background:${INK};border-radius:20px;padding:38px 34px;">
+      <p style="margin:0 0 10px;font:600 11px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:2.5px;">
+        ONE STEP LEFT
+      </p>
+      <h1 style="margin:0 0 16px;font:800 30px/1.15 Arial,Helvetica,sans-serif;color:${PAPER};letter-spacing:-.5px;">
+        You're almost on<br>the Climb Log.
+      </h1>
+      <p style="margin:0 0 28px;font:400 15px/1.6 Arial,Helvetica,sans-serif;color:#a9adbb;">
+        One click confirms it's really you. That's all &mdash; no password, no account, nothing to remember.
+      </p>
+
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+        <td style="background:${SUN};border-radius:999px;">
+          <a href="${link}" style="display:inline-block;padding:16px 34px;font:700 15px/1 Arial,Helvetica,sans-serif;color:${INK};text-decoration:none;letter-spacing:.3px;">
+            CONFIRM MY SPOT &#9889;
+          </a>
+        </td>
+      </tr></table>
+
+      <p style="margin:26px 0 0;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:#7c8194;">
+        Button not working? Paste this into your browser:<br>
+        <a href="${link}" style="color:${SUN};word-break:break-all;">${link}</a>
+      </p>
+    </td></tr>
+
+    <tr><td style="padding:26px 4px 0;">
+      <p style="margin:0 0 12px;font:700 11px/1 Arial,Helvetica,sans-serif;color:${MUTE};letter-spacing:2px;">
+        WHAT LANDS IN YOUR INBOX
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font:400 14px/1.6 Arial,Helvetica,sans-serif;color:${INK};">
+        <tr><td style="padding:7px 0;">&#9889;&nbsp; What I built, and what broke</td></tr>
+        <tr><td style="padding:7px 0;">&#128196;&nbsp; The links actually worth keeping</td></tr>
+        <tr><td style="padding:7px 0;">&#127957;&nbsp; First word when the Basecamp opens</td></tr>
+      </table>
+      <p style="margin:14px 0 0;font:400 11px/1.6 Arial,Helvetica,sans-serif;color:${MUTE};letter-spacing:1px;">
+        OCCASIONAL &middot; NEVER SPAM &middot; ONE-CLICK OUT
+      </p>
+    </td></tr>
+
+    <tr><td style="padding:26px 4px 0;border-top:1px solid #e0dcd2;margin-top:20px;">
+      <p style="margin:18px 0 6px;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:${MUTE};">
+        Didn't sign up? Ignore this email and nothing happens. You won't hear from me again.
+      </p>
+      <p style="margin:0;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:${MUTE};">
+        Gautam Talks &middot; <a href="https://gautamtalks.com" style="color:${COBALT};text-decoration:none;">gautamtalks.com</a>
+      </p>
+    </td></tr>
+
+  </table>
+</td></tr></table>
+</body></html>`;
 }
 
 export default {
@@ -188,7 +284,26 @@ export default {
       profile[k] = options.includes(v) ? v : options[0];
     }
 
+    const domain = email.slice(email.lastIndexOf("@") + 1);
+    if (DISPOSABLE.has(domain)) return json({ error: "disposable_email" }, 400, allowed);
+
     const emailHash = await sha256(email + (env.EMAIL_SALT || ""));
+
+    // Already on the list? Say so instead of silently re-sending.
+    const existing = await env.DB.prepare(
+      "SELECT confirmed, created_at FROM subscribers WHERE email_hash = ?"
+    ).bind(emailHash).first();
+
+    if (existing) {
+      if (existing.confirmed === 1) {
+        return json({ ok: true, already: true }, 200, allowed);
+      }
+      // Unconfirmed: allow a resend, but not more than once every 10 minutes.
+      const age = Date.now() - new Date(existing.created_at).getTime();
+      if (age < 10 * 60 * 1000) {
+        return json({ ok: true, pending: true, throttled: true }, 200, allowed);
+      }
+    }
     const token = crypto.randomUUID().replace(/-/g, "");
     const unsub = crypto.randomUUID().replace(/-/g, "");
     const now = new Date().toISOString();
@@ -206,14 +321,24 @@ export default {
     // send the confirmation email (double opt-in) via Resend
     if (env.RESEND_KEY) {
       const link = `${env.WORKER_URL}/confirm?t=${token}`;
+      const html = confirmEmailHTML(link);
+      const text =
+        "ASCEND HIGHER\n\n" +
+        "You're one click from the Climb Log.\n\n" +
+        "Confirm here: " + link + "\n\n" +
+        "What lands in your inbox: what I built and what broke, the links worth keeping, " +
+        "and first word when the Basecamp opens. Occasional. Never spam.\n\n" +
+        "If you didn't request this, ignore this email and nothing happens.\n\n" +
+        "Gautam Talks\ngautamtalks.com";
       await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { authorization: `Bearer ${env.RESEND_KEY}`, "content-type": "application/json" },
         body: JSON.stringify({
           from: env.FROM_ADDRESS || "Gautam Talks <hello@gautamtalks.com>",
           to: [email],
-          subject: "Confirm your spot on the Climb Log",
-          text: `One click and you're in: ${link}\n\nIf you didn't request this, ignore this email and nothing happens.\n\nGautam Talks\ngautamtalks.com`,
+          subject: "One click and you're on the Climb Log \u26A1",
+          html,
+          text
         }),
       }).catch(() => {});
     }
