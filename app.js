@@ -125,18 +125,32 @@
       do { n = DARES[Math.floor(Math.random()*DARES.length)]; } while (n === cur);
       $("#dareTxt").textContent = n;
     });
-    let charge = 0;
-    const MS = {10:"WARMED UP. KEEP GOING.",25:"NOW WE'RE CLIMBING.",50:"CERTIFIED HYPE MACHINE.",100:"LEGEND. GO BUILD SOMETHING."};
+    // Charge persists across visits: your streak is yours to keep.
+    const CH_KEY = "gt.charge.v1";
+    const readCharge = () => { try { return parseInt(localStorage.getItem(CH_KEY) || "0", 10) || 0; } catch { return 0; } };
+    const writeCharge = v => { try { localStorage.setItem(CH_KEY, String(v)); } catch {} };
+    let charge = readCharge();
+    const MS = {1:"THAT'S ONE. KEEP GOING.",10:"WARMED UP.",25:"NOW WE'RE CLIMBING.",
+      50:"CERTIFIED HYPE MACHINE.",100:"LEGEND. GO BUILD SOMETHING.",250:"OK YOU'RE JUST SHOWING OFF.",
+      500:"500. GENUINELY, GO OUTSIDE.",1000:"ONE THOUSAND. RESPECT."};
+    const paintCharge = () => {
+      const b = $("#chBolt"); if (!b) return;
+      $("#chCount").textContent = charge.toLocaleString();
+      b.style.transform = `scale(${Math.min(1 + charge * .02, 1.9)}) rotate(${(charge % 2 ? -1 : 1) * 8}deg)`;
+      b.style.filter = `drop-shadow(0 0 ${Math.min(charge / 3, 14)}px rgba(255,210,63,.9))`;
+    };
     const chb = $("#chBtn");
-    if (chb) chb.addEventListener("click", e => {
-      charge++;
-      $("#chCount").textContent = charge;
-      const b = $("#chBolt");
-      b.style.transform = `scale(${Math.min(1+charge*.02,1.9)}) rotate(${(charge%2?-1:1)*8}deg)`;
-      b.style.filter = `drop-shadow(0 0 ${Math.min(charge/3,14)}px rgba(255,210,63,.9))`;
-      if (MS[charge]) $("#chMsg").textContent = MS[charge];
-      if (charge % 10 === 0) burst(e.clientX || innerWidth/2, e.clientY || innerHeight/2, 12);
-    });
+    if (chb) {
+      paintCharge();
+      if (charge > 0) $("#chMsg").textContent = "PICKING UP WHERE YOU LEFT OFF \u26A1";
+      chb.addEventListener("click", e => {
+        charge++;
+        writeCharge(charge);
+        paintCharge();
+        if (MS[charge]) $("#chMsg").textContent = MS[charge];
+        if (charge % 10 === 0) burst(e.clientX || innerWidth / 2, e.clientY || innerHeight / 2, 12);
+      });
+    }
   }
   const renderPoster = () => {
     grid.innerHTML = `

@@ -1,0 +1,42 @@
+# Gautam Talks
+
+> Gautam Talks is Gautam Khosla, a Computer Engineering student at the University of
+> Ottawa and MLH hackathon award winner who documents hackathons, startups and
+> engineering builds on YouTube. The through-line of the channel is simple:
+> start before you feel ready.
+
+## Who
+
+- Name: Gautam Khosla. Online as: Gautam Talks.
+- Studying Computer Engineering (Co-op) at the University of Ottawa, Ottawa, Canada.
+- Awards: MLH Best Use of Snowflake API (HackConcordia), award winner at ConUHacks X
+  (Quebec's largest hackathon), Top 9 at McHacks with Backboard.io.
+- Currently building two startups and filming the process.
+
+## Sites
+
+- https://gautamtalks.com — creator site: videos, the Hub, the Climb Log newsletter.
+- https://gautamkhosla.com — engineering portfolio: projects, repos, work history.
+
+## Channels
+
+- YouTube (main): https://www.youtube.com/@GautamKhoslaOfficial
+- Instagram: https://www.instagram.com/gautamk.talks/
+- X: https://x.com/HeyGautamTalks
+- LinkedIn: https://www.linkedin.com/in/gautam-khosla/
+
+## Pages
+
+- /          Home. Latest videos, start-here picks, platform links.
+- /hub/      The Hub: papers, links, collabs, calls, and the Climb Log newsletter.
+- /contact/  Collaboration and enquiry contact: collabwith.gt@gmail.com
+- /privacy/  Privacy policy.
+
+## Notable topics
+
+hackathons, ConUHacks, McHacks, HackConcordia, uOttaHack, building in public,
+startups, edge AI, QNX RTOS, computer engineering, student creator, content creation
+
+## Contact
+
+collabwith.gt@gmail.com

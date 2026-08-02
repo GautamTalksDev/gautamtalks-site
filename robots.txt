@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
+# LLM-readable summary: /llms.txt
 Sitemap: https://gautamtalks.com/sitemap.xml
