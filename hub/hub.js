@@ -3,7 +3,7 @@
   "use strict";
 
   /* =============== EDIT ZONE =============== */
-  const SIGNUP_ENDPOINT = ""; // paste your worker URL + "/subscribe" after deploying
+  const SIGNUP_ENDPOINT = "https://gautamtalks-signup.developwith-gt.workers.dev/subscribe"; // paste your worker URL + "/subscribe" after deploying
   const TURNSTILE_SITEKEY = ""; // optional: Cloudflare Turnstile site key
   const LINKS = {
     calendly: "",
