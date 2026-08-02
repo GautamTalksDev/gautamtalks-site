@@ -3,7 +3,7 @@
   "use strict";
 
   /* =============== EDIT ZONE =============== */
-  const SIGNUP_ENDPOINT = "https://gautamtalks-signup.developwith-gt.workers.dev/subscribe"; // paste your worker URL + "/subscribe" after deploying
+  const SIGNUP_ENDPOINT = ""; // paste your worker URL + "/subscribe" after deploying
   const TURNSTILE_SITEKEY = ""; // optional: Cloudflare Turnstile site key
   const LINKS = {
     calendly: "",
@@ -210,11 +210,14 @@
       const out = await res.json().catch(() => ({}));
       if (res.ok && out.ok) {
         state.subscribed = true;
-        status("Check your inbox and confirm — one click and you're in ⚡", "ok");
+        if (out.already) status("You're already on the list ⚡ Opening your Hub.", "ok");
+        else if (out.throttled) status("Already sent — check your inbox (and spam).", "ok");
+        else status("Check your inbox and confirm — one click and you're in ⚡", "ok");
         setTimeout(finish, 1400);
       } else {
         const msgs = { invalid_email: "That email doesn't look right.", rate_limited: "Too many tries. Give it an hour.",
-          captcha_failed: "Captcha didn't pass. Try once more.", consent_required: "Tick the consent box first." };
+          captcha_failed: "Captcha didn't pass. Try once more.", consent_required: "Tick the consent box first.",
+          disposable_email: "Throwaway inboxes aren't accepted. Use a real one?" };
         status(msgs[out.error] || "Something went wrong. Opening your Hub anyway ⚡", "err");
         setTimeout(finish, 1600);
       }
