@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://gautamtalks.com/sitemap.xml

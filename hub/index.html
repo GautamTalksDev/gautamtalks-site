@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data: https://i.ytimg.com; connect-src 'self' https://*.workers.dev https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; form-action 'none'; base-uri 'none'; object-src 'none'; manifest-src 'self'; worker-src 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Hub · Gautam Talks</title>
+<meta name="description" content="Papers, links, collabs, calls and the Climb Log newsletter. Everything Gautam Talks mentions in videos and reels, in one place.">
+<link rel="canonical" href="https://gautamtalks.com/hub/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The Hub · Gautam Talks">
+<meta property="og:description" content="Everything mentioned in the videos, in one place. Tuned to how you climb.">
+<meta property="og:url" content="https://gautamtalks.com/hub/">
+<meta property="og:image" content="https://gautamtalks.com/gautam.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f7f4ec">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2316151c'/%3E%3Ctext x='50' y='72' font-size='60' text-anchor='middle'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="hub.css">
+</head>
+<body>
+
+<nav class="topbar">
+  <a class="logo" href="../" style="text-decoration:none">GAUTAM<span class="bolt">⚡</span>TALKS</a>
+  <span class="elev"><span class="elev-label" id="hubGreet">THE HUB</span></span>
+  <a class="navlink" href="../">← HOME</a>
+</nav>
+
+<main class="hub-main">
+
+  <!-- STEP 0: intro -->
+  <section class="hb-band" id="hbIntro">
+    <p class="eyebrow" style="margin-bottom:22px">THE HUB ⚡ TUNED TO YOU</p>
+    <h1 class="hb-h1">EVERYTHING<br><span class="hb-hi">IN ONE PLACE.</span></h1>
+    <p class="hb-lede">Papers I've read, links I mention, people I build with, calls you can book, and the Climb Log. Answer three quick questions and the Hub arranges itself around how you climb. Takes twelve seconds, and it remembers you forever after.</p>
+    <div class="cta-row">
+      <button class="cta cta-ink" id="startQuiz" type="button">TUNE MY HUB ⚡</button>
+      <button class="cta cta-line" id="skipQuiz" type="button">JUST SHOW ME EVERYTHING</button>
+    </div>
+  </section>
+
+  <!-- STEP 1: quiz -->
+  <section class="hb-band" id="hbQuiz" hidden>
+    <div class="quiz-card">
+      <div class="quiz-progress"><span class="qp-fill" id="qpFill"></span></div>
+      <p class="quiz-step" id="quizStep">QUESTION 1 OF 3</p>
+      <h2 class="quiz-q" id="quizQ">Which one sounds most like you?</h2>
+      <div class="quiz-opts" id="quizOpts"></div>
+      <button class="quiz-back" id="quizBack" type="button" hidden>← BACK</button>
+    </div>
+  </section>
+
+  <!-- STEP 2: email -->
+  <section class="hb-band" id="hbEmail" hidden>
+    <div class="quiz-card">
+      <p class="quiz-step">LAST STEP</p>
+      <h2 class="quiz-q">Where should the Climb Log land?</h2>
+      <p class="hb-note" id="emailWhy">Your Hub is ready. Drop an email and I'll send field notes from the climb — what I built, what broke, what I learned. Occasional, never spam, one-click unsubscribe.</p>
+      <form class="hb-form" id="signupForm" novalidate>
+        <label class="sr-only" for="emailInput">Email address</label>
+        <input id="emailInput" name="email" type="email" inputmode="email" autocomplete="email"
+               placeholder="you@email.com" required maxlength="254">
+        <!-- honeypot: hidden from humans, catnip for bots -->
+        <input class="hp" type="text" name="website" id="hpField" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <label class="consent">
+          <input type="checkbox" id="consentBox" required>
+          <span>Yes, email me the Climb Log. I can unsubscribe any time.</span>
+        </label>
+        <div id="turnstileBox" class="ts-box"></div>
+        <div class="form-row">
+          <button class="cta cta-ink" type="submit" id="submitBtn">UNLOCK MY HUB ⚡</button>
+          <button class="linkish" type="button" id="noEmail">skip, open the Hub anyway</button>
+        </div>
+        <p class="hb-status" id="formStatus" role="status" aria-live="polite"></p>
+      </form>
+      <p class="hb-fine">Your email is stored in my own database, used only for the Climb Log, never sold and never shared. <a href="../privacy/">Privacy</a>.</p>
+    </div>
+  </section>
+
+  <!-- STEP 3: the hub -->
+  <section class="hb-band" id="hbContent" hidden>
+    <div class="hb-head">
+      <span class="hb-tag" id="hbProfileTag">YOUR HUB</span>
+      <h2 class="hb-h2" id="hbHeadline">YOUR HUB</h2>
+      <p class="hb-lede" id="hbSubline"></p>
+      <button class="linkish" id="retune" type="button">retune my hub</button>
+    </div>
+    <div class="hb-grid" id="hbGrid"></div>
+  </section>
+
+</main>
+
+<footer>
+  <span>© <span id="yr">2026</span> GAUTAM TALKS</span>
+  <span>MADE AT ALTITUDE ⚡</span>
+</footer>
+
+<script src="hub.js"></script>
+</body>
+</html>

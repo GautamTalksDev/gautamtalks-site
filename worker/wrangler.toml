@@ -1,0 +1,16 @@
+name = "gautamtalks-signup"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+WORKER_URL = "https://gautamtalks-signup.YOUR-SUBDOMAIN.workers.dev"
+FROM_ADDRESS = "Gautam Talks <hello@gautamtalks.com>"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gautamtalks-subs"
+database_id = "PASTE_FROM_STEP_2"
+
+[[kv_namespaces]]
+binding = "RATE"
+id = "PASTE_FROM_STEP_4"
