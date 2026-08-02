@@ -4,7 +4,7 @@
 
   /* =============== EDIT ZONE =============== */
   const SIGNUP_ENDPOINT = "https://gautamtalks-signup.developwith-gt.workers.dev/subscribe"; // paste your worker URL + "/subscribe" after deploying
-  const TURNSTILE_SITEKEY = ""; // optional: Cloudflare Turnstile site key
+  const TURNSTILE_SITEKEY = "0x4AAAAAAEEpHzVeMh1NpyhY"; // optional: Cloudflare Turnstile site key
   const LINKS = {
     calendly: "",
     discord: "",
