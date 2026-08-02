@@ -62,3 +62,65 @@
 .hb-badge{position:absolute;top:16px;right:16px;font-family:var(--mono);font-size:.54rem;letter-spacing:.14em;font-weight:600;background:var(--ink);color:var(--paper);padding:5px 11px;border-radius:999px;rotate:3deg}
 .hb-badge.you{background:var(--cobalt)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== v8 · hub life: split intro, floating panel, entrances ===== */
+.hb-split{display:grid;gap:56px;align-items:center}
+@media(min-width:960px){.hb-split{grid-template-columns:1.1fr .9fr}}
+.hb-panel{position:relative;display:grid;gap:18px;justify-self:center;max-width:400px;width:100%}
+.panel-card{background:var(--card);border:2.5px solid var(--ink);border-radius:20px;padding:20px 22px;box-shadow:6px 6px 0 var(--ink);animation:pcIn .6s cubic-bezier(.2,.8,.2,1) backwards;transition:transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s}
+.panel-card:hover{transform:translate(-3px,-3px) rotate(0deg)!important;box-shadow:10px 10px 0 var(--ink)}
+.p-tilt1{rotate:-2deg;animation-delay:.05s}
+.p-tilt2{rotate:1.5deg;animation-delay:.18s}
+.p-tilt3{rotate:-1deg;animation-delay:.31s}
+.p-sun{background:var(--sun)}
+.p-cobalt{background:var(--cobalt);color:#fff}
+@keyframes pcIn{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:none}}
+.pc-tag{font-family:var(--mono);font-size:.56rem;letter-spacing:.2em;opacity:.7;display:block;margin-bottom:8px}
+.pc-big{font-family:var(--disp);font-weight:900;font-size:1.05rem;line-height:1.25}
+.pc-list{list-style:none;padding:0;margin:0;display:grid;gap:7px;font-size:.9rem;font-weight:600}
+.pc-rotate{font-family:var(--disp);font-weight:900;font-size:1.7rem;letter-spacing:-.02em}
+.pc-sub{font-family:var(--mono);font-size:.55rem;letter-spacing:.16em;opacity:.75}
+.panel-bolt{position:absolute;font-size:1.8rem;pointer-events:none;animation:pbFloat 5s ease-in-out infinite;filter:drop-shadow(3px 3px 0 rgba(22,21,28,.2))}
+.pb1{top:-18px;right:-6px}
+.pb2{bottom:-14px;left:-14px;font-size:1.3rem;animation-delay:1.6s}
+@keyframes pbFloat{50%{transform:translateY(-14px) rotate(10deg)}}
+/* quiz + cards entrance */
+.quiz-card{animation:pcIn .5s cubic-bezier(.2,.8,.2,1) backwards}
+.qopt{animation:pcIn .45s cubic-bezier(.2,.8,.2,1) backwards}
+.qopt:nth-child(2){animation-delay:.07s}.qopt:nth-child(3){animation-delay:.14s}.qopt:nth-child(4){animation-delay:.21s}
+.hb-card{animation:pcIn .55s cubic-bezier(.2,.8,.2,1) backwards}
+.hb-card:nth-child(2){animation-delay:.08s}.hb-card:nth-child(3){animation-delay:.16s}
+.hb-card:nth-child(4){animation-delay:.24s}.hb-card:nth-child(5){animation-delay:.32s}
+.hb-card:nth-child(6){animation-delay:.4s}
+.hb-h1,.hb-h2{animation:pcIn .6s cubic-bezier(.2,.8,.2,1) backwards}
+@media(prefers-reduced-motion:reduce){.panel-card,.qopt,.hb-card,.quiz-card,.hb-h1,.hb-h2{animation:none}}
+
+/* BUGFIX: author display rules (.hb-split{display:grid}) override the hidden attribute.
+   Same trap as the room title card. Guard it explicitly. */
+.hub-main [hidden]{display:none!important}
+
+/* questionnaire screen: give it company */
+.quiz-wrap{display:grid;gap:44px;align-items:start}
+@media(min-width:980px){.quiz-wrap{grid-template-columns:1.15fr .85fr}}
+.quiz-side{display:grid;gap:16px;position:relative}
+.qs-card{background:var(--card);border:2.5px solid var(--ink);border-radius:20px;padding:20px 22px;box-shadow:6px 6px 0 var(--ink);animation:pcIn .55s cubic-bezier(.2,.8,.2,1) backwards}
+.qs-card:nth-child(2){animation-delay:.12s}.qs-card:nth-child(3){animation-delay:.24s}
+.qs-1{rotate:-1.6deg}.qs-2{rotate:1.2deg;background:var(--sun)}.qs-3{rotate:-.8deg;background:var(--cobalt);color:#fff}
+.qs-tag{font-family:var(--mono);font-size:.55rem;letter-spacing:.2em;opacity:.7;display:block;margin-bottom:8px}
+.qs-big{font-family:var(--disp);font-weight:900;font-size:1.02rem;line-height:1.28}
+.qs-steps{display:grid;gap:9px;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em}
+.qs-steps li{list-style:none;display:flex;gap:10px;align-items:center;opacity:.45;transition:opacity .3s}
+.qs-steps li.on{opacity:1;font-weight:600}
+.qs-steps li.done{opacity:.8}
+.qs-dot{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;flex:0 0 auto;display:grid;place-items:center;font-size:.5rem}
+.qs-steps li.done .qs-dot{background:currentColor}
+.qs-steps li.done .qs-dot::after{content:"✓";color:var(--card)}
+.qs-bolt{position:absolute;font-size:1.6rem;right:-10px;top:-16px;animation:pbFloat 5s ease-in-out infinite;filter:drop-shadow(3px 3px 0 rgba(22,21,28,.2))}
+@media(prefers-reduced-motion:reduce){.qs-card{animation:none}}
+
+/* email step side panel */
+.mail-steps li{opacity:.9}
+.mail-list{list-style:none;padding:0;margin:0 0 12px;display:grid;gap:9px;font-size:.88rem;font-weight:600;line-height:1.35}
+.mail-rhythm{font-family:var(--mono);font-size:.55rem;letter-spacing:.16em;color:var(--mute)}
+.qs-2 .mail-rhythm{color:rgba(22,21,28,.6)}
+#hbEmail .quiz-card{align-self:start}

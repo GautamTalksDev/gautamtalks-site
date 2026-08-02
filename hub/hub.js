@@ -49,6 +49,10 @@
     $("#quizStep").textContent = `QUESTION ${qi + 1} OF ${QUESTIONS.length}`;
     $("#quizQ").textContent = q.q;
     $("#quizBack").hidden = qi === 0;
+    document.querySelectorAll("#qsSteps li").forEach((li, i) => {
+      li.classList.toggle("on", i === qi);
+      li.classList.toggle("done", i < qi);
+    });
     $("#quizOpts").innerHTML = q.opts.map(o =>
       `<button class="qopt" type="button" data-v="${esc(o.v)}">
          <span class="qopt-ico">${o.ico}</span>
@@ -57,7 +61,11 @@
     $("#quizOpts").querySelectorAll(".qopt").forEach(b => b.addEventListener("click", () => {
       profile[q.key] = b.dataset.v;
       if (qi < QUESTIONS.length - 1) { qi++; renderQ(); }
-      else { show("hbEmail"); tailorEmailCopy(); }
+      else {
+        state.profile = { ...profile };   // persist immediately, before the email step
+        save(state);
+        show("hbEmail"); tailorEmailCopy();
+      }
     }));
   }
 
@@ -148,6 +156,7 @@
     if (re) re.addEventListener("click", () => { show("hbEmail"); scrollTo({ top: 0, behavior: "smooth" }); });
     $("#hubGreet").textContent = t.tag;
     show("hbContent");
+    if (location.hash === "#mine") scrollTo({ top: 0 });
   }
 
   function show(id) {
@@ -163,6 +172,10 @@
       community: "Your Hub is ready. The Climb Log is how I tell you first when Basecamp opens."
     };
     $("#emailWhy").textContent = copy[g] || copy.start;
+    const tags = { builder:"BUILDER MODE READY", creator:"CREATOR MODE READY",
+                   student:"STUDENT MODE READY", curious:"EXPLORER MODE READY" };
+    const mt = $("#mailTag");
+    if (mt) mt.textContent = tags[profile.track] || "TUNED & READY";
   }
 
   /* ---------------- signup ---------------- */
@@ -224,6 +237,26 @@
   $("#noEmail").addEventListener("click", finish);
   $("#quizBack").addEventListener("click", () => { if (qi > 0) { qi--; renderQ(); } });
   $("#retune").addEventListener("click", () => { qi = 0; profile = {}; show("hbQuiz"); renderQ(); scrollTo({ top: 0, behavior: "smooth" }); });
+
+
+  /* intro panel life */
+  const pm = $("#panelMotto"), pr = $("#panelRole");
+  if (pm) {
+    const doy2 = Math.floor((Date.now() - new Date(new Date().getFullYear(),0,0))/864e5);
+    const M = ["START MESSY. FIX IT LIVE.","NOBODY FEELS READY. GO ANYWAY.",
+      "SMALL REPS. BIG CLIMB.","DONE TODAY BEATS PERFECT SOMEDAY.",
+      "COURAGE FIRST. SKILL CATCHES UP.","SHIP IT. VERSION TWO IS EASIER."];
+    pm.textContent = M[doy2 % M.length];
+  }
+  if (pr) {
+    const roles = ["BUILDERS","CREATORS","STUDENTS","EXPLORERS"];
+    let ri = 0;
+    setInterval(() => { ri = (ri+1) % roles.length;
+      pr.style.opacity = 0;
+      setTimeout(() => { pr.textContent = roles[ri]; pr.style.opacity = 1; }, 220);
+    }, 2400);
+    pr.style.transition = "opacity .22s";
+  }
 
   /* returning visitor: straight to their Hub, no questions ever again */
   if (state.profile && state.profile.track) { profile = state.profile; renderHub(profile); }

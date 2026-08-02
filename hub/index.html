@@ -34,7 +34,8 @@
 <main class="hub-main">
 
   <!-- STEP 0: intro -->
-  <section class="hb-band" id="hbIntro">
+  <section class="hb-band hb-split" id="hbIntro">
+    <div>
     <p class="eyebrow" style="margin-bottom:22px">THE HUB ⚡ TUNED TO YOU</p>
     <h1 class="hb-h1">EVERYTHING<br><span class="hb-hi">IN ONE PLACE.</span></h1>
     <p class="hb-lede">Papers I've read, links I mention, people I build with, calls you can book, and the Climb Log. Answer three quick questions and the Hub arranges itself around how you climb. Takes twelve seconds, and it remembers you forever after.</p>
@@ -42,10 +43,36 @@
       <button class="cta cta-ink" id="startQuiz" type="button">TUNE MY HUB ⚡</button>
       <button class="cta cta-line" id="skipQuiz" type="button">JUST SHOW ME EVERYTHING</button>
     </div>
+    </div>
+    <aside class="hb-panel" aria-hidden="true">
+      <div class="panel-card p-tilt1">
+        <span class="pc-tag">TODAY'S FUEL</span>
+        <p class="pc-big" id="panelMotto">START MESSY. FIX IT LIVE.</p>
+      </div>
+      <div class="panel-card p-tilt2 p-sun">
+        <span class="pc-tag">WHAT THE HUB HOLDS</span>
+        <ul class="pc-list">
+          <li>📄 Papers &amp; reading</li>
+          <li>🔗 Links from the videos</li>
+          <li>🤝 Collabs &amp; projects</li>
+          <li>📅 Book a call</li>
+          <li>🏕️ The Basecamp</li>
+          <li>📮 The Climb Log</li>
+        </ul>
+      </div>
+      <div class="panel-card p-tilt3 p-cobalt">
+        <span class="pc-tag">TUNED FOR</span>
+        <p class="pc-rotate" id="panelRole">BUILDERS</p>
+        <span class="pc-sub">FOUR MODES · ONE IS YOURS</span>
+      </div>
+      <span class="panel-bolt pb1">⚡</span>
+      <span class="panel-bolt pb2">⚡</span>
+    </aside>
   </section>
 
   <!-- STEP 1: quiz -->
   <section class="hb-band" id="hbQuiz" hidden>
+   <div class="quiz-wrap">
     <div class="quiz-card">
       <div class="quiz-progress"><span class="qp-fill" id="qpFill"></span></div>
       <p class="quiz-step" id="quizStep">QUESTION 1 OF 3</p>
@@ -53,10 +80,31 @@
       <div class="quiz-opts" id="quizOpts"></div>
       <button class="quiz-back" id="quizBack" type="button" hidden>← BACK</button>
     </div>
+    <aside class="quiz-side" aria-hidden="true">
+      <div class="qs-card qs-1">
+        <span class="qs-tag">WHY I'M ASKING</span>
+        <p class="qs-big">Three taps and the Hub reorders itself around what you actually came for.</p>
+      </div>
+      <div class="qs-card qs-2">
+        <span class="qs-tag">PROGRESS</span>
+        <ul class="qs-steps" id="qsSteps">
+          <li data-s="0"><span class="qs-dot"></span>WHO YOU ARE</li>
+          <li data-s="1"><span class="qs-dot"></span>WHAT YOU WANT</li>
+          <li data-s="2"><span class="qs-dot"></span>HOW YOU READ</li>
+        </ul>
+      </div>
+      <div class="qs-card qs-3">
+        <span class="qs-tag">THEN</span>
+        <p class="qs-big">Your Hub unlocks and stays tuned. You never answer these again.</p>
+      </div>
+      <span class="qs-bolt">⚡</span>
+    </aside>
+   </div>
   </section>
 
   <!-- STEP 2: email -->
   <section class="hb-band" id="hbEmail" hidden>
+   <div class="quiz-wrap">
     <div class="quiz-card">
       <p class="quiz-step">LAST STEP</p>
       <h2 class="quiz-q">Where should the Climb Log land?</h2>
@@ -80,6 +128,32 @@
       </form>
       <p class="hb-fine">Your email is stored in my own database, used only for the Climb Log, never sold and never shared. <a href="../privacy/">Privacy</a>.</p>
     </div>
+    <aside class="quiz-side" aria-hidden="true">
+      <div class="qs-card qs-2">
+        <span class="qs-tag">YOUR HUB IS BUILT</span>
+        <p class="qs-big" id="mailTag">TUNED &amp; READY</p>
+        <ul class="qs-steps mail-steps">
+          <li class="done"><span class="qs-dot"></span>ANSWERS SAVED</li>
+          <li class="done"><span class="qs-dot"></span>CARDS REORDERED</li>
+          <li class="on"><span class="qs-dot"></span>ONE LAST STEP</li>
+        </ul>
+      </div>
+      <div class="qs-card qs-1">
+        <span class="qs-tag">WHAT LANDS IN YOUR INBOX</span>
+        <ul class="mail-list">
+          <li>⚡ What I built and what broke</li>
+          <li>📄 The links worth keeping</li>
+          <li>🏕️ First word when Basecamp opens</li>
+        </ul>
+        <p class="mail-rhythm">OCCASIONAL · NEVER SPAM · ONE-CLICK OUT</p>
+      </div>
+      <div class="qs-card qs-3">
+        <span class="qs-tag">NOT READY?</span>
+        <p class="qs-big">Skip it. Your Hub still opens, still remembers you.</p>
+      </div>
+      <span class="qs-bolt">⚡</span>
+    </aside>
+   </div>
   </section>
 
   <!-- STEP 3: the hub -->

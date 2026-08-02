@@ -451,3 +451,32 @@ body.hype .zz-sky{background:var(--sky)}body.hype .zz-blush{background:var(--blu
 
 /* ===== v7.1 · THE FIX: hidden must actually hide (author display was beating [hidden]) ===== */
 .room [hidden]{display:none!important}
+
+/* ===== v8 · seamless marquees (gap bug: track must be max-content, not 100%) ===== */
+.tape-in,.tape-rev{width:max-content;min-width:200%}
+.tape-in span{flex:0 0 auto;padding-right:2.2rem}
+.tapeband{--mq:34s}
+.tape-in{animation:mqloop var(--mq) linear infinite}
+.tape-now{--mq:30s}
+.tape-rev{animation:mqloop var(--mq) linear infinite reverse}
+@keyframes mqloop{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+.tapeband:hover .tape-in,.tape-now:hover .tape-rev{animation-play-state:paused}
+
+/* ===== v8.1 · homepage HUB section: fanned card preview ===== */
+.hub-split{display:grid;gap:52px;align-items:center}
+@media(min-width:980px){.hub-split{grid-template-columns:1fr .95fr}}
+.hub-preview{display:grid;grid-template-columns:1fr 1fr;gap:14px;position:relative;justify-self:center;max-width:430px;width:100%}
+.hp-card{background:var(--card);border:2.5px solid var(--ink);border-radius:16px;padding:16px 15px;box-shadow:5px 5px 0 var(--ink);text-decoration:none;color:var(--ink);display:flex;flex-direction:column;gap:5px;transition:transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,background .2s}
+.hp-card:hover{transform:translate(-3px,-3px) rotate(0deg)!important;box-shadow:9px 9px 0 var(--ink);background:var(--sun)}
+.hp-card b{font-family:var(--disp);font-weight:700;font-size:.72rem;letter-spacing:-.01em;line-height:1.25}
+.hp-card i{font-style:normal;font-size:.7rem;color:var(--mute)}
+.hp-card:hover i{color:var(--ink)}
+.hp-ico{font-size:1.15rem}
+.hp-1{rotate:-2deg}.hp-2{rotate:1.5deg}.hp-3{rotate:1deg}
+.hp-4{rotate:-1.5deg}.hp-5{rotate:-1deg}.hp-6{rotate:2deg}
+.hp-2{background:var(--sun)}
+.hp-6{background:var(--cobalt);border-color:var(--ink)}
+.hp-6 b{color:#fff}.hp-6 i{color:rgba(255,255,255,.8)}
+.hp-6:hover b,.hp-6:hover i{color:var(--ink)}
+.hp-stamp{position:absolute;right:-26px;bottom:-30px;font-family:var(--disp);font-weight:900;font-size:.72rem;line-height:1.2;text-align:center;background:var(--coral);color:#fff;border:2.5px solid var(--ink);border-radius:50%;width:104px;height:104px;display:grid;place-items:center;rotate:-10deg;box-shadow:5px 5px 0 var(--ink);animation:pbFloat 5.5s ease-in-out infinite}
+@media(max-width:620px){.hp-stamp{right:-8px;bottom:-22px;width:84px;height:84px;font-size:.62rem}}

@@ -47,7 +47,7 @@
   if (eyebrow) eyebrow.textContent = "TODAY'S FUEL \u26A1 " + MOTTOS[doy % MOTTOS.length];
 
   const ticker = $("#nowTicker");
-  if (ticker) { const l = NOW.join(" \u26A1 ") + " \u26A1 "; ticker.innerHTML = `<span>${l}</span><span>${l}</span>`; }
+  if (ticker) { const l = NOW.join(" \u26A1 ") + " \u26A1 "; ticker.innerHTML = `<span>${l}</span>`.repeat(4); }
 
   /* elevation */
   const label = $("#elevLabel"), bar = $(".topbar");
