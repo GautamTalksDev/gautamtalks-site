@@ -27,33 +27,67 @@ a{color:var(--cobalt);font-weight:600}
 <nav class="topbar"><a class="logo" href="../" style="text-decoration:none">GAUTAM<span class="bolt">⚡</span>TALKS</a><a class="navlink" href="../">← HOME</a></nav>
 <main>
 <h1>Privacy</h1>
-<p class="upd">PLAIN LANGUAGE · SHORT ON PURPOSE</p>
+<p class="upd">PLAIN LANGUAGE · SHORT ON PURPOSE · LAST UPDATED 2 AUGUST 2026</p>
 
-<h2>What I collect</h2>
+<p>This site is run by Gautam Khosla ("I", "me"). If you only watch the videos and read the pages, I collect nothing about you. The rest of this page explains the one case where I do.</p>
+
+<h2>What I collect, and only if you choose</h2>
 <ul>
-<li><strong>Your email</strong>, only if you type it in and tick the consent box.</li>
-<li><strong>Your Hub answers</strong> (three multiple-choice questions). These are stored on your own device and, if you signed up, alongside your email so the newsletter stays relevant.</li>
+<li><strong>Your email address</strong> — only if you type it into the Climb Log form and tick the consent box.</li>
+<li><strong>Your three Hub answers</strong> — which of four descriptions fits you, what you want from this year, and whether you prefer short or detailed. These are multiple choice; there is no free-text field anywhere on this site.</li>
+<li><strong>A consent timestamp</strong> — the moment you ticked the box, and the moment you confirmed by email. Canadian anti-spam law requires me to be able to prove consent.</li>
 </ul>
 
-<h2>What I never do</h2>
+<h2>What I never collect</h2>
 <ul>
-<li>No selling, renting, or sharing your email. Not ever.</li>
-<li>No advertising trackers, no third-party analytics pixels, no cross-site profiling.</li>
-<li>No emails you didn't explicitly ask for.</li>
+<li>No advertising trackers, no analytics pixels, no third-party scripts that watch you.</li>
+<li>No name, age, location, phone number, or payment details.</li>
+<li>No raw IP addresses. Rate limiting uses a salted one-way hash of your IP, which cannot be reversed into an address.</li>
+<li>No profiles built from your browsing anywhere else.</li>
 </ul>
 
-<h2>Where it lives</h2>
-<p>Emails are stored in a private database I control (Cloudflare D1), encrypted at rest, reachable only by me. Your Hub preferences live in your browser's local storage and never leave your device unless you sign up.</p>
+<h2>Where your data lives</h2>
+<p>Emails are stored in a Cloudflare D1 database that I control, encrypted at rest, reachable only with credentials I hold. Nothing is stored on the website itself.</p>
+<p>Your Hub answers are also saved in your own browser's local storage so the Hub remembers you without a login. That copy never leaves your device unless you also sign up, and you can erase it any time by clearing this site's data or clicking "retune my hub".</p>
 
-<h2>Double opt-in</h2>
-<p>After signing up you get one confirmation email. If you don't click it, you're never emailed again and the record is unused. That's Canadian anti-spam law (CASL) and it's also just decent behaviour.</p>
+<h2>Who else touches it</h2>
+<p>Two service providers, each doing one job:</p>
+<ul>
+<li><strong>Cloudflare</strong> — hosts the database, the signup worker, and the bot check (Turnstile).</li>
+<li><strong>Resend</strong> — sends the confirmation email and the newsletter.</li>
+</ul>
+<p>Neither is permitted to use your address for their own purposes. I do not sell, rent, trade, or share your email with anyone, ever. Fonts are served by Google Fonts.</p>
 
-<h2>Getting out</h2>
-<p>Every email has a one-click unsubscribe that deletes your record immediately. You can also email me and I'll remove everything: see the address on <a href="https://gautamkhosla.com">gautamkhosla.com</a>. To wipe your Hub preferences, clear this site's data in your browser, or click "retune my hub".</p>
+<h2>Double opt-in, and why</h2>
+<p>After signing up you get exactly one confirmation email. If you never click the link, you are never emailed again and the unconfirmed record is deleted during routine cleanup. This protects you from someone else entering your address, and it satisfies Canada's Anti-Spam Legislation (CASL), which requires express consent.</p>
 
-<h2>Other sites</h2>
-<p>Links to YouTube, Instagram, X, LinkedIn and others take you to their platforms, which have their own privacy rules. Fonts are served by Google Fonts.</p>
+<h2>How long it is kept</h2>
+<ul>
+<li><strong>Confirmed subscribers</strong> — until you unsubscribe, then deleted immediately.</li>
+<li><strong>Unconfirmed signups</strong> — removed within 30 days.</li>
+<li><strong>Rate-limit hashes</strong> — automatically expire within 6 hours.</li>
+</ul>
+
+<h2>Your rights</h2>
+<p>You can ask me to show you what I hold, correct it, or delete it. Under Canadian law (PIPEDA), the GDPR if you are in the EU or UK, and similar laws elsewhere, these rights apply regardless of where you live, and exercising them costs you nothing and changes nothing about how you are treated.</p>
+<ul>
+<li><strong>Unsubscribe</strong> — one click in any email. Your record is deleted, not just flagged.</li>
+<li><strong>Access, correction, or deletion</strong> — email <a href="mailto:collabwith.gt@gmail.com">collabwith.gt@gmail.com</a> and I will action it within 30 days, usually the same week.</li>
+<li><strong>Complaint</strong> — if I get it wrong, you can complain to the Office of the Privacy Commissioner of Canada, or your local data protection authority.</li>
+</ul>
+
+<h2>Children</h2>
+<p>This site is not directed at children under 13, and I do not knowingly collect their data. If you believe a child has signed up, email me and I will remove the record immediately.</p>
+
+<h2>Security</h2>
+<p>Signup traffic is validated, rate limited, and bot-checked before it reaches the database. Secrets are stored in an encrypted key store and never in the site's public source code. The site enforces HTTPS and a strict Content Security Policy. No system is perfect; if you find a weakness, please tell me at the address above rather than exploiting it, and you will get a fast reply and credit if you want it.</p>
+
+<h2>Changes</h2>
+<p>If this policy changes materially, the date at the top changes and, if you are a subscriber, I will tell you in the newsletter rather than quietly editing the page.</p>
+
+<h2>Contact</h2>
+<p>Anything on this page: <a href="mailto:collabwith.gt@gmail.com">collabwith.gt@gmail.com</a>. See also the <a href="../contact/">contact page</a>.</p>
 </main>
-<footer><span>© 2026 GAUTAM TALKS</span><span>MADE AT ALTITUDE ⚡</span></footer>
+<footer><span>© 2026 GAUTAM TALKS</span><span class="foot-links"><a href="../privacy/">PRIVACY</a> · <a href="../contact/">CONTACT</a> · MADE AT ALTITUDE ⚡</span></footer>
 </body>
 </html>

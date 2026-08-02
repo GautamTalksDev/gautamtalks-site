@@ -264,9 +264,19 @@
     pr.style.transition = "opacity .22s";
   }
 
-  /* returning visitor: straight to their Hub, no questions ever again */
-  if (state.profile && state.profile.track) { profile = state.profile; renderHub(profile); }
-  else show("hbIntro");
+  /* Entry routing.
+     - Already tuned  -> straight to their Hub, no questions, ever.
+     - Not tuned yet  -> the questionnaire, because the Hub needs answers to exist.
+     The intro only shows if someone lands on /hub/ with no signal at all. */
+  const wantsTune = /[?&](start|tune)=1/.test(location.search) || location.hash === "#tune";
+  if (state.profile && state.profile.track) {
+    profile = state.profile;
+    renderHub(profile);
+  } else if (wantsTune) {
+    qi = 0; profile = {}; show("hbQuiz"); renderQ();
+  } else {
+    show("hbIntro");
+  }
 
   /* optional captcha */
   if (TURNSTILE_SITEKEY) {

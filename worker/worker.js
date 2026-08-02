@@ -83,13 +83,40 @@ async function verifyTurnstile(token, ip, secret) {
   return out.success === true;
 }
 
-async function rateLimit(env, ip) {
-  if (!env.RATE) return true;
-  const key = `rl:${await sha256(ip + (env.IP_SALT || ""))}`;
+// Two-tier limiter.
+//  - burst:  6 requests / 5 min   (stops rapid hammering)
+//  - signup: 8 NEW subscriptions / 6 h (stops list stuffing)
+// Failed validation, duplicates and already-subscribed do NOT consume signup
+// quota, so honest people retrying a typo are never punished.
+const RL = {
+  burst:  { max: 6, ttl: 300,   prefix: "b:" },
+  signup: { max: 8, ttl: 21600, prefix: "s:" },
+};
+
+async function ipKey(env, ip, prefix) {
+  return prefix + (await sha256(ip + (env.IP_SALT || "")));
+}
+
+async function checkBurst(env, ip) {
+  if (!env.RATE) return { ok: true };
+  const key = await ipKey(env, ip, RL.burst.prefix);
   const hits = parseInt((await env.RATE.get(key)) || "0", 10);
-  if (hits >= 5) return false; // 5 submissions / hour / IP
-  await env.RATE.put(key, String(hits + 1), { expirationTtl: 3600 });
-  return true;
+  if (hits >= RL.burst.max) return { ok: false, retryAfter: RL.burst.ttl };
+  await env.RATE.put(key, String(hits + 1), { expirationTtl: RL.burst.ttl });
+  return { ok: true };
+}
+
+async function checkSignupQuota(env, ip) {
+  if (!env.RATE) return { ok: true };
+  const key = await ipKey(env, ip, RL.signup.prefix);
+  const hits = parseInt((await env.RATE.get(key)) || "0", 10);
+  if (hits >= RL.signup.max) return { ok: false, retryAfter: RL.signup.ttl };
+  return { ok: true, key, hits };
+}
+
+async function consumeSignupQuota(env, quota) {
+  if (!env.RATE || !quota || !quota.key) return;
+  await env.RATE.put(quota.key, String(quota.hits + 1), { expirationTtl: RL.signup.ttl });
 }
 
 
@@ -267,7 +294,14 @@ export default {
     if (body.consent !== true) return json({ error: "consent_required" }, 400, allowed);
 
     const ip = request.headers.get("CF-Connecting-IP") || "";
-    if (!(await rateLimit(env, ip))) return json({ error: "rate_limited" }, 429, allowed);
+
+    // burst guard first: cheapest check, stops hammering
+    const burst = await checkBurst(env, ip);
+    if (!burst.ok) {
+      return json({ error: "rate_limited", retryAfter: burst.retryAfter,
+                    message: "Too many attempts in a short time." }, 429, allowed);
+    }
+
     if (!(await verifyTurnstile(body.turnstile, ip, env.TURNSTILE_SECRET))) {
       return json({ error: "captcha_failed" }, 403, allowed);
     }
@@ -308,6 +342,13 @@ export default {
     const unsub = crypto.randomUUID().replace(/-/g, "");
     const now = new Date().toISOString();
 
+    // only a genuinely NEW subscription consumes the signup quota
+    const quota = await checkSignupQuota(env, ip);
+    if (!quota.ok) {
+      return json({ error: "rate_limited", retryAfter: quota.retryAfter,
+                    message: "Signup limit reached for this network." }, 429, allowed);
+    }
+
     try {
       await env.DB.prepare(
         `INSERT INTO subscribers (email, email_hash, profile, consent_at, token, unsub_token, confirmed, created_at)
@@ -317,6 +358,7 @@ export default {
     } catch (e) {
       return json({ error: "storage_failed" }, 500, allowed);
     }
+    await consumeSignupQuota(env, quota);
 
     // send the confirmation email (double opt-in) via Resend
     if (env.RESEND_KEY) {
