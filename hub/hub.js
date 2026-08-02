@@ -236,7 +236,10 @@
   $("#skipQuiz").addEventListener("click", () => { profile = { track: "curious", goal: "start", depth: "quick" }; finish(); });
   $("#noEmail").addEventListener("click", finish);
   $("#quizBack").addEventListener("click", () => { if (qi > 0) { qi--; renderQ(); } });
-  $("#retune").addEventListener("click", () => { qi = 0; profile = {}; show("hbQuiz"); renderQ(); scrollTo({ top: 0, behavior: "smooth" }); });
+  $("#retune").addEventListener("click", () => {
+    if (!confirm("This reopens the 3 quick questions and re-tunes your Hub. Continue?")) return;
+    qi = 0; profile = {}; show("hbQuiz"); renderQ(); scrollTo({ top: 0, behavior: "smooth" });
+  });
 
 
   /* intro panel life */

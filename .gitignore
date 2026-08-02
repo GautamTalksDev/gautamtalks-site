@@ -1,0 +1,22 @@
+# ── Never commit secrets ─────────────────────────────────────
+.env
+.env.*
+*.local
+.dev.vars                 # Wrangler local secrets file
+worker/.dev.vars
+worker/.wrangler/
+secrets.json
+*.pem
+*.key
+subscribers.json          # exported subscriber lists
+subscribers.csv
+*.sqlite
+*.db
+
+# ── Tooling noise ────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

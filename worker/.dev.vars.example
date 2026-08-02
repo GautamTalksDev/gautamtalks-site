@@ -1,0 +1,6 @@
+# Copy to .dev.vars for LOCAL testing only. Never commit .dev.vars.
+# In production these are set with: wrangler secret put <NAME>
+EMAIL_SALT="generate-with-openssl-rand-hex-32"
+IP_SALT="generate-with-openssl-rand-hex-32"
+RESEND_KEY="re_xxxxxxxxxxxx"
+TURNSTILE_SECRET="0x4xxxxxxxxxxxxxxxxx"

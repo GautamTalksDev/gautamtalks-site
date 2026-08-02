@@ -140,7 +140,7 @@
   }
   const renderPoster = () => {
     grid.innerHTML = `
-      <a class="latest-main poster" href="https://www.youtube.com/playlist?list=${UPLOADS}" target="_blank" rel="noopener">
+      <a class="latest-main poster" href="https://www.youtube.com/playlist?list=${UPLOADS}" target="_blank" rel="noopener noreferrer">
         <span class="p-play">\u25B6</span>
         <span class="p-t">PLAY THE NEWEST DROP</span>
         <span class="p-s">ALWAYS POINTS AT THE LATEST VIDEO</span>
@@ -160,9 +160,11 @@
           <time datetime="${esc(x.date)}">${new Date(x.date).toLocaleDateString("en-CA",{year:"numeric",month:"short",day:"numeric"}).toUpperCase()}</time></div>
         </a>`).join("");
       grid.innerHTML = `
-        <a class="latest-main" href="${esc(v[0].url)}" target="_blank" rel="noopener">
+        <a class="latest-main has-thumb" href="${esc(v[0].url)}" target="_blank" rel="noopener noreferrer">
           <img class="lm-img" src="${esc(v[0].thumb).replace("hqdefault","maxresdefault")}" data-fallback="${esc(v[0].thumb)}" alt="">
-          <span class="lm-title">\u25B6 ${esc(v[0].title)}</span>
+          <span class="lm-play">\u25B6</span>
+          <span class="lm-chip">\u26A1 NEWEST</span>
+          <span class="lm-title">${esc(v[0].title)}</span>
         </a>
         <div class="latest-side">${toys(thumbs)}</div>`;
       wireToys();

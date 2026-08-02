@@ -6,7 +6,17 @@ import { writeFileSync, mkdirSync } from "node:fs";
 const CHANNEL = "UCpyDH6OnqrndhkyYXAdyS3A";
 const FEED = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL}`;
 const WANT = 3;
-const SCAN_LIMIT = 15;
+const SCAN_LIMIT = 20;
+
+// ── EXCLUDE LIST ────────────────────────────────────────────────
+// The public RSS feed carries no duration, so short-length uploads that
+// YouTube does not file as "Shorts" cannot be detected automatically.
+// Paste any video ID here and it will never appear on the site.
+// The ID is the part after watch?v=  e.g. https://youtube.com/watch?v=-p6_WSY45nA
+const EXCLUDE = new Set([
+  "-p6_WSY45nA",   // When the squad locks in... (0:17)
+]);
+// ────────────────────────────────────────────────────────────────
 
 const res = await fetch(FEED, { headers: { "user-agent": "gautamtalks-feed/1.0" } });
 if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`);
@@ -44,6 +54,7 @@ const all = entries.slice(0, SCAN_LIMIT).map(e => {
 const videos = [];
 for (const v of all) {
   if (videos.length >= WANT) break;
+  if (EXCLUDE.has(v.id)) { console.log(`skip (excluded): ${v.title}`); continue; }
   if (/#shorts?\b/i.test(v.title)) { console.log(`skip (title): ${v.title}`); continue; }
   if (await isShort(v.id)) { console.log(`skip (short): ${v.title}`); continue; }
   console.log(`keep: ${v.title}`);
