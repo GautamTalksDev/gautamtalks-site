@@ -195,6 +195,34 @@ function confirmEmailHTML(link) {
 }
 
 export default {
+  /* Scheduled cleanup. Runs daily via the cron trigger in wrangler.toml.
+     Enforces exactly what the privacy policy promises:
+       - unconfirmed signups deleted after 30 days
+       - confirmation tokens expire after 7 days (link stops working)
+     No endpoint, no auth surface: Cloudflare invokes this internally. */
+  async scheduled(event, env, ctx) {
+    const now = Date.now();
+    const iso = (ms) => new Date(now - ms).toISOString();
+    try {
+      const purged = await env.DB.prepare(
+        "DELETE FROM subscribers WHERE confirmed = 0 AND created_at < ?"
+      ).bind(iso(30 * 24 * 3600 * 1000)).run();
+
+      const expired = await env.DB.prepare(
+        "UPDATE subscribers SET token = NULL WHERE confirmed = 0 AND token IS NOT NULL AND created_at < ?"
+      ).bind(iso(7 * 24 * 3600 * 1000)).run();
+
+      // counts only, never addresses
+      console.log(JSON.stringify({
+        task: "cleanup",
+        unconfirmed_deleted: purged.meta?.changes ?? 0,
+        tokens_expired: expired.meta?.changes ?? 0
+      }));
+    } catch (e) {
+      console.log(JSON.stringify({ task: "cleanup", error: "failed" }));
+    }
+  },
+
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const allowed = ALLOWED_ORIGINS.has(origin) ? origin : "";
@@ -217,9 +245,12 @@ export default {
     if (request.method === "GET" && url.pathname === "/confirm") {
       const token = url.searchParams.get("t") || "";
       if (!/^[a-f0-9]{32,64}$/.test(token)) return new Response("Invalid link", { status: 400 });
+      // token must exist, be unconfirmed, and be younger than 7 days
+      const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
       const res = await env.DB.prepare(
-        "UPDATE subscribers SET confirmed = 1, confirmed_at = ?, token = NULL WHERE token = ? AND confirmed = 0"
-      ).bind(new Date().toISOString(), token).run();
+        "UPDATE subscribers SET confirmed = 1, confirmed_at = ?, token = NULL " +
+        "WHERE token = ? AND confirmed = 0 AND created_at >= ?"
+      ).bind(new Date().toISOString(), token, cutoff).run();
       const ok = res.meta && res.meta.changes > 0;
       return new Response(
         `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
