@@ -3,14 +3,14 @@ main = "worker.js"
 compatibility_date = "2026-01-01"
 
 [vars]
-WORKER_URL = "https://gautamtalks-signup.YOUR-SUBDOMAIN.workers.dev"
+WORKER_URL = "https://gautamtalks-signup.developwith-gt.workers.dev"
 FROM_ADDRESS = "Gautam Talks <hello@gautamtalks.com>"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "gautamtalks-subs"
-database_id = "PASTE_FROM_STEP_2"
+database_id = "e477f0c4-cb7e-4503-b7b5-cfa129608d6d"
 
 [[kv_namespaces]]
 binding = "RATE"
-id = "PASTE_FROM_STEP_4"
+id = "6eddba5f539640d8a8093c49ce2bc51c"
