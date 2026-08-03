@@ -1,4 +1,4 @@
-/* GAUTAM TALKS · THE ROOM — a low-poly night in the life. All geometry generated in code. */
+/* GAUTAM TALKS · THE ROOM · a low-poly night in the life. All geometry generated in code. */
 window.GT_ROOM = window.GT_ROOM || (() => {
   "use strict";
   let inited = false, running = false, raf = 0, skipFlag = false;
