@@ -211,8 +211,8 @@
       if (res.ok && out.ok) {
         state.subscribed = true;
         if (out.already) status("You're already on the list ⚡ Opening your Hub.", "ok");
-        else if (out.throttled) status("Already sent — check your inbox (and spam).", "ok");
-        else status("Check your inbox and confirm — one click and you're in ⚡", "ok");
+        else if (out.throttled) status("Already sent. Check your inbox, and your spam folder.", "ok");
+        else status("Check your inbox and confirm. One click and you're in ⚡", "ok");
         setTimeout(finish, 1400);
       } else {
         const msgs = { invalid_email: "That email doesn't look right.", rate_limited: "Too many tries. Give it an hour.",
