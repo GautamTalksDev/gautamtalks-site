@@ -15,8 +15,8 @@
 
 ## Sites
 
-- https://gautamtalks.com — creator site: videos, the Hub, the Climb Log newsletter.
-- https://gautamkhosla.com — engineering portfolio: projects, repos, work history.
+- https://gautamtalks.com · creator site: videos, the Hub, the Climb Log newsletter.
+- https://gautamkhosla.com · engineering portfolio: projects, repos, work history.
 
 ## Channels
 
