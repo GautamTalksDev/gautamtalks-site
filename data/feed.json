@@ -1,14 +1,6 @@
 {
-  "updated": "2026-08-02T18:39:59.522Z",
+  "updated": "2026-08-03T08:41:25.264Z",
   "videos": [
-    {
-      "id": "-p6_WSY45nA",
-      "title": "When the squad locks in...",
-      "url": "https://www.youtube.com/watch?v=-p6_WSY45nA",
-      "thumb": "https://i.ytimg.com/vi/-p6_WSY45nA/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/-p6_WSY45nA/maxresdefault.jpg",
-      "date": "2026-07-16T04:08:06+00:00"
-    },
     {
       "id": "md8uJs9z8zQ",
       "title": "I Did 4 Hackathons in 1 Month. Now I'm Building 2 Startups.",
@@ -24,6 +16,14 @@
       "thumb": "https://i.ytimg.com/vi/kauLXxM1QWw/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/kauLXxM1QWw/maxresdefault.jpg",
       "date": "2026-05-29T23:05:17+00:00"
+    },
+    {
+      "id": "TuiTUBdRTTg",
+      "title": "Start Here: Gautam Talks | Life, Growth & Everything Between",
+      "url": "https://www.youtube.com/watch?v=TuiTUBdRTTg",
+      "thumb": "https://i.ytimg.com/vi/TuiTUBdRTTg/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/TuiTUBdRTTg/maxresdefault.jpg",
+      "date": "2026-01-21T05:06:22+00:00"
     }
   ]
 }
