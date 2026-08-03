@@ -1,8 +1,8 @@
-/* GAUTAM TALKS · app.js — consolidated. One file, one flow. */
+/* GAUTAM TALKS · app.js · consolidated. One file, one flow. */
 (() => {
   "use strict";
 
-  /* ================= EDIT ZONE — daily updates live here ================= */
+  /* ================= EDIT ZONE · daily updates live here ================= */
   const HUB = {
     newsletterAction: "", calendly: "", discord: "",
     research: [], mentioned: [], collabs: []
