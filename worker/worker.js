@@ -149,7 +149,7 @@ function confirmEmailHTML(link) {
         You're almost on<br>the Climb Log.
       </h1>
       <p style="margin:0 0 28px;font:400 15px/1.6 Arial,Helvetica,sans-serif;color:#a9adbb;">
-        One click confirms it's really you. That's all &mdash; no password, no account, nothing to remember.
+        One click confirms it's really you. That's all. No password, no account, nothing to remember.
       </p>
 
       <table role="presentation" cellpadding="0" cellspacing="0"><tr>
