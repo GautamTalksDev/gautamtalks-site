@@ -1,6 +1,14 @@
 {
-  "updated": "2026-08-09T05:56:21.876Z",
+  "updated": "2026-08-10T06:22:04.272Z",
   "videos": [
+    {
+      "id": "-LQbB1A9DfU",
+      "title": "I Wasn't Ready for 4 Final Exams in 6 Days",
+      "url": "https://www.youtube.com/watch?v=-LQbB1A9DfU",
+      "thumb": "https://i.ytimg.com/vi/-LQbB1A9DfU/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/-LQbB1A9DfU/maxresdefault.jpg",
+      "date": "2026-08-10T02:55:43+00:00"
+    },
     {
       "id": "md8uJs9z8zQ",
       "title": "I Did 4 Hackathons in 1 Month. Now I'm Building 2 Startups.",
@@ -16,14 +24,6 @@
       "thumb": "https://i.ytimg.com/vi/kauLXxM1QWw/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/kauLXxM1QWw/maxresdefault.jpg",
       "date": "2026-05-29T23:05:17+00:00"
-    },
-    {
-      "id": "TuiTUBdRTTg",
-      "title": "Start Here: Gautam Talks | Life, Growth & Everything Between",
-      "url": "https://www.youtube.com/watch?v=TuiTUBdRTTg",
-      "thumb": "https://i.ytimg.com/vi/TuiTUBdRTTg/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/TuiTUBdRTTg/maxresdefault.jpg",
-      "date": "2026-01-21T05:06:22+00:00"
     }
   ]
 }
