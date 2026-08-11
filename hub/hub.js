@@ -6,7 +6,7 @@
   const SIGNUP_ENDPOINT = "https://gautamtalks-signup.developwith-gt.workers.dev/subscribe"; // paste your worker URL + "/subscribe" after deploying
   const TURNSTILE_SITEKEY = "0x4AAAAAAEEpHzVeMh1NpyhY"; // optional: Cloudflare Turnstile site key
   const LINKS = {
-    calendly: "",
+    calendly: "https://cal.com/gautamtalks/chat",
     discord: "",
     research: [],   // { label, url }
     mentioned: [],  // { label, url }
