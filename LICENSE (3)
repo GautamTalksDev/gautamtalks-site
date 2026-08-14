@@ -1,0 +1,74 @@
+Copyright (c) 2026 Gautam Khosla. All rights reserved.
+
+This repository contains the source code, design, written content, and
+visual identity of the website published at https://gautamtalks.com
+
+PROPRIETARY. THIS IS NOT OPEN SOURCE SOFTWARE.
+
+No permission is granted to copy, reproduce, modify, adapt, translate,
+publish, distribute, sublicense, sell, deploy, host, or create derivative
+works from any part of this repository, in whole or in part, by any means
+or in any medium, whether or not for commercial purpose.
+
+This applies to, without limitation: the HTML, CSS, and JavaScript source;
+the page layouts and interaction design; the three.js scene in room.js and
+the animated short it renders; the Hub personalisation logic and its
+written templates; the Cloudflare Worker source; the newsletter templates
+and issues; the photographs; and the overall look, feel, and arrangement
+of the site.
+
+WHAT IS PERMITTED WITHOUT ASKING
+
+  1. Viewing the source, in a browser or on GitHub.
+  2. Forking on GitHub, which GitHub's Terms of Service grant to all users
+     of the platform for any public repository. A fork conveys no licence
+     beyond what those Terms provide and does not permit republication,
+     deployment, or use of this material under your own name.
+  3. Reading the code to learn from it, and independently writing your own
+     implementation of a technique you understood here. Ideas and
+     techniques are not claimed. This specific expression of them is.
+  4. Quoting short excerpts with attribution and a link, where fair dealing
+     under the Copyright Act (Canada), fair use under 17 U.S.C. section 107,
+     or the equivalent provision in your jurisdiction applies.
+
+WHAT IS NOT PERMITTED
+
+  Deploying this site, or a recognisably derivative version of it, at any
+  domain. Using it as a template, theme, or starting point for your own
+  creator site. Removing or altering this notice. Redistributing the
+  written content or the newsletter issues. Training a model on this
+  repository for the purpose of reproducing its expression.
+
+THIRD-PARTY MATERIAL
+
+  This repository redistributes software that is NOT covered by the above
+  and is NOT mine to restrict. It remains under its own licence and you may
+  use it accordingly:
+
+    /three.min.js
+      three.js r128, Copyright (c) 2010-2021 three.js authors.
+      MIT License. https://github.com/mrdoob/three.js
+
+  The MIT License requires that its copyright notice and permission notice
+  be included with all copies. See THIRD-PARTY.md.
+
+  Fonts (Unbounded, Space Grotesk, JetBrains Mono) are loaded from Google
+  Fonts at runtime and are not redistributed by this repository. They are
+  each under the SIL Open Font License 1.1.
+
+NO WARRANTY
+
+  This material is provided "as is", without warranty of any kind, express
+  or implied, including but not limited to the warranties of
+  merchantability, fitness for a particular purpose, and noninfringement.
+  In no event shall the author be liable for any claim, damages, or other
+  liability arising from, out of, or in connection with this material or
+  its use.
+
+PERMISSION AND CONTACT
+
+  Licences for use beyond the above are available on request and are
+  frequently granted, particularly for education. Ask first:
+  collabwith.gt@gmail.com
+
+  Enquiries are answered. Silent copying is not.
