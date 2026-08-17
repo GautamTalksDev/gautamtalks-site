@@ -25,6 +25,17 @@ const FROM = "Gautam Talks <hello@gautamtalks.com>";
 const WORKER = "https://gautamtalks-signup.developwith-gt.workers.dev";
 const SITE = "https://gautamtalks.com";
 const TEST_TO = "developwith.gt@gmail.com";
+const ASSETS = `${SITE}/newsletter/assets`;
+
+/* social icons live in newsletter/assets/ and must be pushed to Pages
+   BEFORE a send, or these render as empty gaps in every inbox. */
+const SOCIALS = [
+  ["youtube",   "YouTube",   "https://www.youtube.com/@GautamKhoslaOfficial"],
+  ["instagram", "Instagram", "https://www.instagram.com/gautamk.talks/"],
+  ["linkedin",  "LinkedIn",  "https://www.linkedin.com/in/gautam-khosla"],
+  ["x",         "X",         "https://x.com/HeyGautamTalks"],
+  ["github",    "GitHub",    "https://github.com/GautamTalksDev"],
+];
 
 const args = process.argv.slice(2);
 const isTest = args.includes("--test");
@@ -51,8 +62,12 @@ for (const line of fmMatch[1].split(/\r?\n/)) {
 const body = raw.slice(fmMatch[0].length).trim();
 if (!meta.subject) { console.error("Front matter needs a subject."); process.exit(1); }
 
+/* reading time, derived from the issue so it can never go stale */
+const READ = Math.max(1, Math.round(body.split(/\s+/).length / 220));
+
 /* ---------- tiny markdown renderer, house style ---------- */
 const INK = "#16151c", PAPER = "#f7f4ec", SUN = "#ffd23f", COBALT = "#2e3df0", MUTE = "#6b6a72";
+const TXT = "#33323b", RULE = "#e2ded1";
 const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 function inline(t) {
@@ -68,16 +83,20 @@ function inline(t) {
 function render(md) {
   const out = [];
   const blocks = md.split(/\r?\n\r?\n/);
+  let sectionNo = 0;
+
   for (let b of blocks) {
     b = b.trim();
     if (!b) continue;
 
-    // callout box:  > text
+    // callout box:  > text   (dark card, yellow label)
     if (b.startsWith(">")) {
       const t = b.split(/\r?\n/).map(l => l.replace(/^>\s?/, "")).join(" ");
-      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0;">
-        <tr><td style="background:${SUN};border-radius:16px;padding:22px 24px;
-        font:600 17px/1.5 Arial,Helvetica,sans-serif;color:${INK};">${inline(t)}</td></tr></table>`);
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+        <tr><td style="background:${INK};border-radius:18px;padding:24px 26px;">
+        <div style="font:700 11px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:1.8px;padding-bottom:11px;">&#9889; THE POINT</div>
+        <div style="font:700 18px/1.5 Arial,Helvetica,sans-serif;color:#ffffff;">${inline(t)}</div>
+        </td></tr></table>`);
       continue;
     }
     // image:  ![alt](url)
@@ -87,9 +106,24 @@ function render(md) {
         style="width:100%;max-width:520px;height:auto;border-radius:14px;display:block;margin:26px 0;">`);
       continue;
     }
-    // headings
+    // sub heading:  ### text   (yellow left bar)
+    // NOTE: this must be tested BEFORE "## ", or "### x" never matches.
+    if (b.startsWith("### ")) {
+      out.push(`<table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 12px;"><tr>
+        <td width="5" style="background:${SUN};font-size:0;line-height:0;">&nbsp;</td>
+        <td style="padding-left:12px;font:800 17px/1.3 Arial,Helvetica,sans-serif;color:${INK};">${inline(b.slice(4))}</td>
+        </tr></table>`);
+      continue;
+    }
+    // section heading:  ## text   (numbered, with a rule)
     if (b.startsWith("## ")) {
-      out.push(`<h2 style="margin:34px 0 12px;font:800 21px/1.25 Arial,Helvetica,sans-serif;color:${INK};">${inline(b.slice(3))}</h2>`);
+      sectionNo++;
+      const n = String(sectionNo).padStart(2, "0");
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:38px 0 0;"><tr>
+        <td width="34" valign="middle" style="font:800 12px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:1px;">${n}</td>
+        <td valign="middle" style="height:2px;background:${RULE};font-size:0;line-height:0;">&nbsp;</td>
+        </tr></table>
+        <h2 style="margin:12px 0 14px;font:800 25px/1.2 Arial,Helvetica,sans-serif;color:${INK};letter-spacing:-.3px;">${inline(b.slice(3))}</h2>`);
       continue;
     }
     if (b.startsWith("# ")) {
@@ -98,7 +132,7 @@ function render(md) {
     }
     // divider
     if (/^(\*\*\*|___|- - -)$/.test(b)) {
-      out.push(`<div style="height:1px;background:#e0dcd2;margin:32px 0;"></div>`);
+      out.push(`<div style="height:1px;background:${RULE};margin:32px 0;"></div>`);
       continue;
     }
     // button:  [[Label]](url)
@@ -114,20 +148,24 @@ function render(md) {
     // list
     if (/^[-*] /m.test(b) && b.split(/\r?\n/).every(l => /^[-*] /.test(l.trim()))) {
       const items = b.split(/\r?\n/).map(l =>
-        `<tr><td valign="top" style="padding:5px 10px 5px 0;font-size:16px;">&#9889;</td>
-         <td style="padding:5px 0;font:400 16px/1.6 Arial,Helvetica,sans-serif;color:${INK};">${inline(l.trim().slice(2))}</td></tr>`
+        `<tr><td valign="top" style="padding:6px 12px 6px 0;font-size:16px;color:${SUN};">&#9889;</td>
+         <td style="padding:6px 0;font:400 17px/1.65 Arial,Helvetica,sans-serif;color:${TXT};">${inline(l.trim().slice(2))}</td></tr>`
       ).join("");
       out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0;">${items}</table>`);
       continue;
     }
     // paragraph
-    out.push(`<p style="margin:0 0 18px;font:400 16px/1.7 Arial,Helvetica,sans-serif;color:${INK};">${inline(b.replace(/\r?\n/g, " "))}</p>`);
+    out.push(`<p style="margin:0 0 18px;font:400 17px/1.75 Arial,Helvetica,sans-serif;color:${TXT};">${inline(b.replace(/\r?\n/g, " "))}</p>`);
   }
   return out.join("\n");
 }
 
 /* ---------- full email shell ---------- */
 function shell(contentHTML, unsubUrl, issueNo) {
+  const icons = SOCIALS.map(([k, n, u]) =>
+    `<td style="padding:0 9px;"><a href="${u}"><img src="${ASSETS}/${k}.png" width="20" height="20" alt="${n}"
+      style="display:block;border:0;width:20px;height:20px;"></a></td>`).join("");
+
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -139,39 +177,55 @@ function shell(contentHTML, unsubUrl, issueNo) {
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
 
-  <tr><td style="padding-bottom:20px;">
+  <tr><td style="padding-bottom:22px;">
     <table role="presentation" width="100%"><tr>
       <td style="font:700 15px/1 Arial,Helvetica,sans-serif;color:${INK};letter-spacing:.5px;">
-        GAUTAM <span style="color:${COBALT};">&#9889;</span> TALKS</td>
-      <td align="right" style="font:600 11px/1 Arial,Helvetica,sans-serif;color:${MUTE};letter-spacing:2px;">
-        THE CLIMB LOG${issueNo ? " &middot; NO." + issueNo : ""}</td>
+        GAUTAM <span style="color:${SUN};">&#9889;</span> TALKS</td>
+      <td align="right" style="font:700 11px/1 Arial,Helvetica,sans-serif;color:#8b8a92;letter-spacing:1.2px;">
+        THE CLIMB LOG${issueNo ? " &middot; NO." + issueNo : ""} &middot; ${READ} MIN READ</td>
     </tr></table>
   </td></tr>
 
-  <tr><td style="background:${INK};border-radius:20px;padding:34px 32px;">
-    <p style="margin:0 0 10px;font:600 11px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:2.5px;">
-      ${esc((meta.kicker || "FIELD NOTES FROM THE CLIMB").toUpperCase())}</p>
-    <h1 style="margin:0;font:800 28px/1.2 Arial,Helvetica,sans-serif;color:${PAPER};letter-spacing:-.5px;">
-      ${esc(meta.title || meta.subject)}</h1>
+  <tr><td style="padding:0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="background:${INK};border-radius:22px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr><td style="height:6px;background:${SUN};border-radius:22px 22px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
+          <tr><td style="padding:26px 28px 30px;">
+            <p style="margin:0 0 14px;font:700 10px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:2.2px;">
+              ${esc((meta.kicker || "FIELD NOTES FROM THE CLIMB").toUpperCase())}</p>
+            <h1 style="margin:0;font:800 31px/1.18 Arial,Helvetica,sans-serif;color:#ffffff;letter-spacing:-.5px;">
+              ${esc(meta.title || meta.subject)}</h1>
+            ${meta.preview ? `<p style="margin:16px 0 0;font:400 15px/1.6 Arial,Helvetica,sans-serif;color:#9d9ca6;">${esc(meta.preview)}</p>` : ""}
+          </td></tr>
+        </table>
+      </td>
+    </tr></table>
   </td></tr>
 
-  <tr><td style="padding:30px 4px 0;">
+  <tr><td style="padding:26px 4px 0;">
     ${contentHTML}
   </td></tr>
 
-  <tr><td style="padding:34px 4px 0;">
-    <div style="height:1px;background:#e0dcd2;"></div>
-    <p style="margin:22px 0 6px;font:400 13px/1.7 Arial,Helvetica,sans-serif;color:${MUTE};">
+  <tr><td style="padding:36px 4px 0;">
+    <div style="height:3px;background:${SUN};font-size:0;line-height:0;">&nbsp;</div>
+    <p style="margin:24px 0 22px;font:400 16px/1.7 Arial,Helvetica,sans-serif;color:${TXT};">
       That's the week. If any of it helped, the best thing you can do is start the thing you've been putting off.
     </p>
-    <p style="margin:0 0 18px;font:400 13px/1.7 Arial,Helvetica,sans-serif;color:${MUTE};">
-      Gautam &middot; <a href="${SITE}" style="color:${COBALT};text-decoration:none;">gautamtalks.com</a>
-    </p>
-    <p style="margin:0;font:400 11px/1.7 Arial,Helvetica,sans-serif;color:#9a978f;">
-      You're getting this because you confirmed your spot on the Climb Log.
-      <a href="${unsubUrl}" style="color:#9a978f;text-decoration:underline;">Unsubscribe in one click</a>
-      and your record is deleted, not just flagged.
-    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr>${icons}</tr></table>
+    </td></tr></table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:18px 0 36px;">
+      <div style="font:700 14px/1 Arial,Helvetica,sans-serif;color:${INK};letter-spacing:.4px;">
+        GAUTAM <span style="color:${SUN};">&#9889;</span> TALKS</div>
+      <div style="padding-top:8px;font:600 11px/1 Arial,Helvetica,sans-serif;color:#8b8a92;letter-spacing:1.6px;">ASCEND HIGHER</div>
+      <div style="padding-top:14px;font:400 13px/1 Arial,Helvetica,sans-serif;">
+        <a href="${SITE}" style="color:${COBALT};text-decoration:none;">gautamtalks.com</a></div>
+      <div style="padding-top:16px;font:400 11px/1.7 Arial,Helvetica,sans-serif;color:#a3a2a9;">
+        You're getting this because you confirmed your spot on the Climb Log.
+        <a href="${unsubUrl}" style="color:#a3a2a9;text-decoration:underline;">Unsubscribe in one click</a>
+        and your record is deleted, not just flagged.</div>
+    </td></tr></table>
   </td></tr>
 
 </table>
@@ -207,7 +261,10 @@ const issueNo = meta.number || "";
 if (isDry) {
   const preview = join(HERE, "preview.html");
   writeFileSync(preview, shell(contentHTML, `${WORKER}/unsubscribe?t=EXAMPLE`, issueNo));
-  console.log(`\nDry run. Preview written to:\n  ${preview}\nOpen it in a browser. Nothing was sent.\n`);
+  console.log(`\nDry run. Preview written to:\n  ${preview}`);
+  console.log(`Header will read: THE CLIMB LOG · NO.${issueNo} · ${READ} MIN READ`);
+  console.log(`Social icons load from ${ASSETS}/ · these must be live on the site before you send.`);
+  console.log(`Open the preview in a browser. Nothing was sent.\n`);
   process.exit(0);
 }
 
@@ -225,6 +282,7 @@ if (isTest) {
   recipients = getSubscribers();
   console.log(`\nConfirmed subscribers: ${recipients.length}`);
   console.log(`Subject: ${meta.subject}`);
+  console.log(`Issue:   NO.${issueNo}`);
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const ans = await rl.question(`\nSend to all ${recipients.length}? Type SEND to confirm: `);
   rl.close();
