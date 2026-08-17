@@ -1,4 +1,19 @@
-- name: Commit if changed
+name: Refresh YouTube feed
+on:
+  schedule:
+    - cron: "17 5 * * *"   # daily
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node scripts/fetch-feed.mjs
+      - name: Commit if changed
         run: |
           git config user.name "feed-bot"
           git config user.email "actions@users.noreply.github.com"
@@ -9,7 +24,10 @@
           fi
           git commit -m "chore: refresh feed"
           for i in 1 2 3; do
-            git pull --rebase --autostash origin main && git push origin main && exit 0
+            if git pull --rebase --autostash origin main && git push origin main; then
+              echo "Pushed on attempt $i."
+              exit 0
+            fi
             echo "Push attempt $i failed, retrying."
             sleep 5
           done
