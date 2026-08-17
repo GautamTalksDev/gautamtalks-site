@@ -1,6 +1,14 @@
 {
-  "updated": "2026-08-16T05:41:00.257Z",
+  "updated": "2026-08-17T01:17:58.468Z",
   "videos": [
+    {
+      "id": "HfxQOeVETFA",
+      "title": "We Had 36 Hours to Build an AI Safety System",
+      "url": "https://www.youtube.com/watch?v=HfxQOeVETFA",
+      "thumb": "https://i.ytimg.com/vi/HfxQOeVETFA/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/HfxQOeVETFA/maxresdefault.jpg",
+      "date": "2026-08-16T23:05:27+00:00"
+    },
     {
       "id": "-LQbB1A9DfU",
       "title": "I Had 4 Finals in 6 Days. I Didn’t Know How to Study",
@@ -16,14 +24,6 @@
       "thumb": "https://i.ytimg.com/vi/md8uJs9z8zQ/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/md8uJs9z8zQ/maxresdefault.jpg",
       "date": "2026-06-10T05:22:01+00:00"
-    },
-    {
-      "id": "kauLXxM1QWw",
-      "title": "We Won an Award at Quebec's Biggest Hackathon | ConUHacks X Vlog",
-      "url": "https://www.youtube.com/watch?v=kauLXxM1QWw",
-      "thumb": "https://i.ytimg.com/vi/kauLXxM1QWw/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/kauLXxM1QWw/maxresdefault.jpg",
-      "date": "2026-05-29T23:05:17+00:00"
     }
   ]
 }
