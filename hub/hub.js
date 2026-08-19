@@ -8,9 +8,7 @@
   const LINKS = {
     calendly: "https://cal.com/gautamtalks/chat",
     discord: "",
-    research: [],   // { label, url }
-    mentioned: [],  // { label, url }
-    collabs: []     // { label, url }
+    library: "../library/"   // the shelf. Add items in data/library.json, nothing here changes.
   };
   /* ========================================= */
 
@@ -104,34 +102,33 @@
   };
   const GOAL_PIN = { start: "mentioned", consistency: "newsletter", skills: "research", community: "basecamp" };
 
-  const linkList = (arr, depth) => {
-    if (!arr.length) return `<p>First drop lands here soon. Whatever I mention next, this is its home.</p>`;
-    const items = depth === "quick" ? arr.slice(0, 3) : arr;
-    return `<div class="hb-links">${items.map(l =>
-      `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)} →</a>`).join("")}</div>`;
-  };
+  const soonNote = t => `<p class="hb-soon">${esc(t)}</p>`;
+  const countLine = key => `<p class="hb-count" data-count="${esc(key)}">LOADING…</p>`;
 
   function card(id, p) {
     const depth = p.depth;
-    const soonNote = t => `<p style="font-family:var(--mono);font-size:.62rem;letter-spacing:.1em">${t}</p>`;
+    const lib = LINKS.library;
     const C = {
       newsletter: () => ({ accent: "var(--coral)", ico: "📮", title: "THE CLIMB LOG",
         body: depth === "quick" ? "Short field notes. Occasional." : "Field notes from the climb: what I built, what broke, what I learned, and the thing I almost quit over. Occasional, never spam.",
-        cta: state.subscribed ? `<p style="font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;color:#0d7a4a">YOU'RE ON THE LIST ⚡</p>`
+        cta: state.subscribed ? `<p class="hb-count hb-on">YOU'RE ON THE LIST ⚡</p>`
           : `<button class="hb-cta" type="button" id="reopenSignup">JOIN THE LIST ⚡</button>`, wide: true }),
       research: () => ({ accent: "var(--cobalt)", ico: "📄", title: "RESEARCH & READING",
-        body: "Papers and articles from the videos.", cta: linkList(LINKS.research, depth) }),
+        body: "Papers and articles from the videos, with what I actually thought.",
+        cta: `<a class="hb-cta" href="${esc(lib)}?f=paper">OPEN THE LIBRARY</a>` + countLine("paper") }),
       mentioned: () => ({ accent: "var(--sun)", ico: "🔗", title: "MENTIONED IN VIDEOS",
-        body: `"Link on my website" always means here.`, cta: linkList(LINKS.mentioned, depth) }),
+        body: `"Link on my website" always means here.`,
+        cta: `<a class="hb-cta on-sun" href="${esc(lib)}?f=mentioned">SEE WHAT I MENTIONED</a>` + countLine("mentioned") }),
       collabs: () => ({ accent: "var(--coral)", ico: "🤝", title: "COLLABS & PROJECTS",
-        body: "People and projects I'm building with.", cta: linkList(LINKS.collabs, depth) }),
+        body: "People and projects I'm building with.",
+        cta: soonNote("ROPING UP"), badge: "SOON" }),
       call: () => ({ accent: "var(--cobalt)", ico: "📅", title: "BOOK A CALL",
         body: "Content, hackathons, or starting your own climb.",
         cta: LINKS.calendly ? `<a class="hb-cta" href="${esc(LINKS.calendly)}" target="_blank" rel="noopener noreferrer">GRAB A SLOT</a>` : soonNote("CALENDAR OPENS SOON"),
         badge: LINKS.calendly ? "" : "SOON" }),
       basecamp: () => ({ accent: "var(--sun)", ico: "🏕️", title: "THE BASECAMP",
         body: "For everyone climbing their own thing.",
-        cta: LINKS.discord ? `<a class="hb-cta" href="${esc(LINKS.discord)}" target="_blank" rel="noopener noreferrer">JOIN THE BASECAMP</a>` : soonNote("PITCHING THE TENTS"),
+        cta: LINKS.discord ? `<a class="hb-cta on-sun" href="${esc(LINKS.discord)}" target="_blank" rel="noopener noreferrer">JOIN THE BASECAMP</a>` : soonNote("PITCHING THE TENTS"),
         badge: LINKS.discord ? "" : "SOON" })
     };
     const c = C[id]();
@@ -142,6 +139,37 @@
       <h3>${c.title}</h3>
       <p>${c.body}</p>
       ${c.cta}</div>`;
+  }
+
+  /* Count lines come from the same JSON the Library page reads, so they can never
+     disagree with what is actually on the shelf. Fails quietly: no counts, buttons still work. */
+  function libCounts() {
+    const slots = document.querySelectorAll("[data-count]");
+    if (!slots.length) return;
+    fetch("../data/library.json", { cache: "no-cache" })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => {
+        const items = Array.isArray(d.items) ? d.items : [];
+        const n = t => items.filter(i => i.type === t).length;
+        const word = (c, s, pl) => `${c} ${c === 1 ? s : pl}`;
+        const upd = d.updated ? " · UPD " + fmtShort(d.updated) : "";
+        slots.forEach(el => {
+          const c = el.dataset.count === "paper"
+            ? n("paper") + n("read")
+            : items.filter(i => i.from && i.from.url).length;
+          const txt = el.dataset.count === "paper"
+            ? word(c, "PAPER", "PAPERS")
+            : word(c, "LINK", "LINKS");
+          el.textContent = c ? txt + upd : "OPENING SOON";
+        });
+      })
+      .catch(() => { slots.forEach(el => { el.textContent = ""; }); });
+  }
+  function fmtShort(s) {
+    const d = new Date(s + "T00:00:00");
+    if (isNaN(d)) return "";
+    const M = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    return `${d.getDate()} ${M[d.getMonth()]}`;
   }
 
   let state = load() || { profile: null, subscribed: false };
@@ -156,6 +184,7 @@
     if (re) re.addEventListener("click", () => { show("hbEmail"); scrollTo({ top: 0, behavior: "smooth" }); });
     $("#hubGreet").textContent = t.tag;
     show("hbContent");
+    libCounts();
     if (location.hash === "#mine") scrollTo({ top: 0 });
   }
 
