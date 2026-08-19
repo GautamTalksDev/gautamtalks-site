@@ -1,5 +1,5 @@
 /* THE LIBRARY · builds on the main styles.css brand system */
-.lib-main{max-width:860px;margin:0 auto;padding:120px 24px 60px}
+.lib-main{max-width:860px;margin:0 auto;padding:130px 24px 70px}
 .lib-head{margin-bottom:34px}
 .lib-eyebrow{font-family:var(--mono);font-size:.64rem;letter-spacing:.2em;background:var(--ink);color:var(--paper);padding:7px 14px;border-radius:8px;display:inline-block;rotate:-2deg;margin-bottom:20px;box-shadow:4px 4px 0 rgba(22,21,28,.2)}
 .lib-h1{font-family:var(--disp);font-weight:900;font-size:clamp(2.6rem,8vw,5rem);line-height:.98;letter-spacing:-.03em}
@@ -51,6 +51,6 @@
 
 @media(prefers-reduced-motion:reduce){.lib-row{animation:none}*{transition:none!important}}
 @media(max-width:560px){
-  .lib-main{padding:100px 18px 40px}
+  .lib-main{padding:110px 18px 44px}
   .lib-row{padding:20px 18px;rotate:0deg!important}
 }
