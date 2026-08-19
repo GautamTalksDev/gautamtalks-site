@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'; manifest-src 'self'; worker-src 'none'; upgrade-insecure-requests">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Library · Gautam Talks</title>
+<meta name="description" content="Papers, tools and links Gautam Talks mentioned somewhere, with what he actually thought about each one.">
+<link rel="canonical" href="https://gautamtalks.com/library/">
+<meta property="og:title" content="The Library · Gautam Talks">
+<meta property="og:description" content="Papers, tools and links I mentioned somewhere. With what I actually thought.">
+<meta property="og:url" content="https://gautamtalks.com/library/">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="library.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="brand" href="../">GAUTAM <span class="bolt">⚡</span> TALKS</a>
+  <div class="nav-right">
+    <span class="elev-wrap" aria-hidden="true">
+      <span class="elev-bar"><span class="elev-fill" id="elevFill"></span><span class="elev-bolt" id="elevBolt">⚡</span></span>
+      <span class="elev-num" id="elevNum">ELEV 0 M</span>
+    </span>
+    <a class="nav-cta" href="../">← HOME</a>
+  </div>
+</header>
+
+<main class="lib-main">
+
+  <section class="lib-head">
+    <span class="lib-eyebrow">THE SHELF ⚡ EVERYTHING I POINT AT</span>
+    <h1 class="lib-h1">THE ⚡<br><span class="lib-hi">LIBRARY.</span></h1>
+    <p class="lib-lede">Papers, tools and links I mentioned somewhere. With what I actually thought, including the parts I disagree with.</p>
+  </section>
+
+  <nav class="lib-filters" id="libFilters" aria-label="Filter the library"></nav>
+
+  <section class="lib-rows" id="libRows" aria-live="polite"></section>
+
+  <p class="lib-empty" id="libEmpty" hidden>Nothing under that filter yet. Try ALL.</p>
+
+  <section class="lib-foot">
+    <h2 class="lib-foot-h">NEW STUFF LANDS<br>IN THE CLIMB LOG FIRST.</h2>
+    <p class="lib-foot-p">Short field notes. What I built, what broke, what I learned.</p>
+    <a class="lib-foot-cta" href="../hub/">JOIN THE LIST ⚡</a>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p>© <span id="yr"></span> GAUTAM TALKS · <a href="../privacy/">PRIVACY</a> · <a href="../contact/">CONTACT</a> · MADE AT ALTITUDE ⚡</p>
+</footer>
+
+<script src="../foot.js" defer></script>
+<script src="library.js" defer></script>
+</body>
+</html>
