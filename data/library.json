@@ -1,0 +1,49 @@
+{
+  "updated": "2026-08-19",
+  "items": [
+    {
+      "id": "microbreaks-2022",
+      "type": "paper",
+      "title": "Give me a break: a meta-analysis on micro-breaks",
+      "source": "PLOS ONE",
+      "year": "2022",
+      "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0272460",
+      "added": "2026-08-19",
+      "note": "Twenty-two studies, 2,335 people, one question: do breaks under ten minutes actually work? Energy went up, fatigue went down, both real effects. The performance boost people quote from this paper is not in it. That gap is the whole lesson, and it is the lumberjack story with numbers attached. Rest is not a shortcut to a faster hour two. It is what leaves you standing at hour six."
+    },
+    {
+      "id": "testing-effect-2014",
+      "type": "paper",
+      "title": "Testing beats restudying: the testing effect",
+      "source": "Psychological Bulletin",
+      "year": "2014",
+      "url": "https://doi.org/10.1037/a0037559",
+      "added": "2026-08-19",
+      "note": "Re-reading your notes feels like studying. It mostly is not. Closing the book and forcing recall beat re-reading by a wide margin, and the gap nearly doubled when someone told you what you got wrong afterwards. Which is the whole argument for building in public. Posting the rough version is a test with feedback attached. Watching the tutorial again is a restudy."
+    },
+    {
+      "id": "sinek-fo476",
+      "type": "video",
+      "title": "Simon Sinek on Figuring Out",
+      "source": "Raj Shamani · FO476",
+      "year": "2026",
+      "url": "https://youtu.be/etgQjtdNEtc",
+      "added": "2026-08-19",
+      "note": "He tells the lumberjack story: two men chopping, one never stops, the other breaks at midday and still cuts more wood, because he spent the break sharpening. Then he aims it straight at people our age who feel behind their friends. Go sharpen the axe and watch how fast the career moves after. What I like is that it is not a rest-is-nice argument. It is a maintenance argument. You are not slowing down, you are staying sharp enough to keep swinging."
+    },
+    {
+      "id": "flocus",
+      "type": "tool",
+      "title": "Flocus",
+      "source": "flocus.com",
+      "year": "",
+      "url": "https://flocus.com/",
+      "added": "2026-08-19",
+      "from": {
+        "label": "FROM THE REEL",
+        "url": "https://www.instagram.com/reel/DY0dEjeOKyk/"
+      },
+      "note": "A browser focus dashboard: timer, tasks, ambient sound, themes. I use it because the friction of starting is the whole battle, and opening one tab that already looks like work is a lower wall than deciding what to do. Worth being clear though. This is a nice room to sit in, not evidence that any technique works. The timer will not do the reps for you."
+    }
+  ]
+}
