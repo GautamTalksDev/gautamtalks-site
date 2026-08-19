@@ -124,3 +124,10 @@
 .mail-rhythm{font-family:var(--mono);font-size:.55rem;letter-spacing:.16em;color:var(--mute)}
 .qs-2 .mail-rhythm{color:rgba(22,21,28,.6)}
 #hbEmail .quiz-card{align-self:start}
+
+/* ===== v9 · library buttons + count lines ===== */
+.hb-count{font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;color:var(--mute);margin:0;flex:0 0 auto!important}
+.hb-count.hb-on{color:#0d7a4a}
+.hb-soon{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;color:var(--mute);margin:0;flex:0 0 auto!important}
+/* yellow buttons need ink text, white on --sun is unreadable */
+.hb-cta.on-sun{color:var(--ink)}
