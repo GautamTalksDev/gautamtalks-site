@@ -1,6 +1,14 @@
 {
-  "updated": "2026-08-23T05:43:37.558Z",
+  "updated": "2026-08-24T02:24:11.469Z",
   "videos": [
+    {
+      "id": "m0IjyVAO_Cs",
+      "title": "I Built 2 Websites for 2 Versions of Myself",
+      "url": "https://www.youtube.com/watch?v=m0IjyVAO_Cs",
+      "thumb": "https://i.ytimg.com/vi/m0IjyVAO_Cs/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/m0IjyVAO_Cs/maxresdefault.jpg",
+      "date": "2026-08-23T23:30:39+00:00"
+    },
     {
       "id": "HfxQOeVETFA",
       "title": "We Had 36 Hours to Build an AI Safety System",
@@ -16,14 +24,6 @@
       "thumb": "https://i.ytimg.com/vi/-LQbB1A9DfU/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/-LQbB1A9DfU/maxresdefault.jpg",
       "date": "2026-08-10T02:55:43+00:00"
-    },
-    {
-      "id": "md8uJs9z8zQ",
-      "title": "I Did 4 Hackathons in 1 Month. Now I'm Building 2 Startups.",
-      "url": "https://www.youtube.com/watch?v=md8uJs9z8zQ",
-      "thumb": "https://i.ytimg.com/vi/md8uJs9z8zQ/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/md8uJs9z8zQ/maxresdefault.jpg",
-      "date": "2026-06-10T05:22:01+00:00"
     }
   ]
 }
