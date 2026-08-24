@@ -214,7 +214,7 @@ function shell(contentHTML, unsubUrl, issueNo) {
   <tr><td style="padding:36px 4px 0;">
     <div style="height:3px;background:${SUN};font-size:0;line-height:0;">&nbsp;</div>
     <p style="margin:24px 0 22px;font:400 16px/1.7 Arial,Helvetica,sans-serif;color:${TXT};">
-      That's the week. If any of it helped, the best thing you can do is start the thing you've been putting off.
+      That's issue ${issueNo || "this one"}. If any of it helped, the best thing you can do is start the thing you've been putting off.
     </p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
       <table role="presentation" cellpadding="0" cellspacing="0"><tr>${icons}</tr></table>
@@ -222,7 +222,7 @@ function shell(contentHTML, unsubUrl, issueNo) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:18px 0 36px;">
       <div style="font:700 14px/1 Arial,Helvetica,sans-serif;color:${INK};letter-spacing:.4px;">
         GAUTAM <span style="color:${SUN};">&#9889;</span> TALKS</div>
-      <div style="padding-top:8px;font:600 11px/1 Arial,Helvetica,sans-serif;color:#8b8a92;letter-spacing:1.6px;">ASCEND HIGHER</div>
+      <div style="padding-top:8px;font:600 11px/1 Arial,Helvetica,sans-serif;color:#8b8a92;letter-spacing:1.6px;">ASCEND HIGHER${issueNo ? " &middot; NO." + issueNo : ""}</div>
       <div style="padding-top:14px;font:400 13px/1 Arial,Helvetica,sans-serif;">
         <a href="${SITE}" style="color:${COBALT};text-decoration:none;">gautamtalks.com</a></div>
       <div style="padding-top:16px;font:400 11px/1.7 Arial,Helvetica,sans-serif;color:#a3a2a9;">
