@@ -135,14 +135,18 @@ function render(md) {
       out.push(`<div style="height:1px;background:${RULE};margin:32px 0;"></div>`);
       continue;
     }
-    // button:  [[Label]](url)
-    const btn = b.match(/^\[\[([^\]]+)\]\]\(([^)\s]+)\)$/);
-    if (btn) {
-      out.push(`<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr>
-        <td style="background:${INK};border-radius:999px;">
-        <a href="${btn[2]}" style="display:inline-block;padding:15px 30px;
-        font:700 14px/1 Arial,Helvetica,sans-serif;color:${PAPER};text-decoration:none;">${esc(btn[1])}</a>
-        </td></tr></table>`);
+    // buttons:  [[Label]](url)  , or several on one line to sit side by side.
+    // The whole block must be nothing but buttons, or it falls through to a paragraph.
+    const btnRe = /\[\[([^\]]+)\]\]\(([^)\s]+)\)/g;
+    const btns = [...b.matchAll(btnRe)];
+    if (btns.length && b.replace(btnRe, "").trim() === "") {
+      const cells = btns.map(([, label, url], i) =>
+        `<td style="background:${INK};border-radius:999px;">
+         <a href="${url}" style="display:inline-block;padding:15px 30px;
+         font:700 14px/1 Arial,Helvetica,sans-serif;color:${PAPER};text-decoration:none;">${esc(label)}</a>
+         </td>${i < btns.length - 1 ? '<td style="width:12px;font-size:0;line-height:0;">&nbsp;</td>' : ""}`
+      ).join("");
+      out.push(`<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0;"><tr>${cells}</tr></table>`);
       continue;
     }
     // list
