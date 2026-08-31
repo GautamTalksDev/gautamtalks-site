@@ -1,6 +1,14 @@
 {
-  "updated": "2026-08-30T10:27:52.647Z",
+  "updated": "2026-08-31T04:13:18.697Z",
   "videos": [
+    {
+      "id": "dU4C4zWwvPM",
+      "title": "I Finally Reset My Entire Room",
+      "url": "https://www.youtube.com/watch?v=dU4C4zWwvPM",
+      "thumb": "https://i.ytimg.com/vi/dU4C4zWwvPM/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/dU4C4zWwvPM/maxresdefault.jpg",
+      "date": "2026-08-31T02:56:02+00:00"
+    },
     {
       "id": "m0IjyVAO_Cs",
       "title": "I Built 2 Websites for 2 Versions of Myself",
@@ -16,14 +24,6 @@
       "thumb": "https://i.ytimg.com/vi/HfxQOeVETFA/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/HfxQOeVETFA/maxresdefault.jpg",
       "date": "2026-08-16T23:05:27+00:00"
-    },
-    {
-      "id": "-LQbB1A9DfU",
-      "title": "I Had 4 Finals in 6 Days. I Didn’t Know How to Study",
-      "url": "https://www.youtube.com/watch?v=-LQbB1A9DfU",
-      "thumb": "https://i.ytimg.com/vi/-LQbB1A9DfU/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/-LQbB1A9DfU/maxresdefault.jpg",
-      "date": "2026-08-10T02:55:43+00:00"
     }
   ]
 }
