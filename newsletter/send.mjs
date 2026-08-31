@@ -135,7 +135,24 @@ function render(md) {
       out.push(`<div style="height:1px;background:${RULE};margin:32px 0;"></div>`);
       continue;
     }
-    // buttons:  [[Label]](url)  , or several on one line to sit side by side.
+    // scoreboard:  a block whose first line is [board] then LABEL | VERDICT per line
+    if (b.startsWith("[board]")) {
+      const lines = b.split(/\r?\n/).slice(1).filter(l => l.trim());
+      const rows = lines.map((l, i) => {
+        const [label, verdict = ""] = l.split("|").map(x => x.trim());
+        const bad = /FAIL|NOT EVALUABLE|STOP/i.test(verdict);
+        return `<tr>
+          <td style="padding:13px 14px;border-top:${i ? "1px solid #2a2932" : "0"};font:400 14px/1.4 Arial,Helvetica,sans-serif;color:#c9c8d2;">${inline(label)}</td>
+          <td align="right" style="padding:13px 14px;border-top:${i ? "1px solid #2a2932" : "0"};font:700 12px/1.4 Arial,Helvetica,sans-serif;color:${bad ? SUN : "#8b8a92"};letter-spacing:1px;white-space:nowrap;">${esc(verdict)}</td>
+        </tr>`;
+      }).join("");
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0;">
+        <tr><td style="background:${INK};border-radius:18px;padding:8px 10px 10px;">
+        <div style="padding:14px 14px 8px;font:700 10px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:2.2px;">WRITTEN BEFORE ANY CODE</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+        </td></tr></table>`);
+      continue;
+    }
     // The whole block must be nothing but buttons, or it falls through to a paragraph.
     const btnRe = /\[\[([^\]]+)\]\]\(([^)\s]+)\)/g;
     const btns = [...b.matchAll(btnRe)];
