@@ -135,12 +135,35 @@ function render(md) {
       out.push(`<div style="height:1px;background:${RULE};margin:32px 0;"></div>`);
       continue;
     }
+    // diff:  a block starting [diff] then lines prefixed - or + or a space
+    if (b.startsWith("[diff]")) {
+      const lines = b.split(/\r?\n/).slice(1);
+      const rows = lines.map(l => {
+        const sign = l[0];
+        const text = l.slice(1);
+        const cfg = sign === "-"
+          ? { bg: "#2b1418", bar: "#c4453a", fg: "#e8b4ae" }
+          : sign === "+"
+          ? { bg: "#12210f", bar: "#4f9a3d", fg: "#b6dfa6" }
+          : { bg: "transparent", bar: "#3a3942", fg: "#9d9ca6" };
+        return `<tr>
+          <td width="4" style="background:${cfg.bar};font-size:0;line-height:0;">&nbsp;</td>
+          <td style="background:${cfg.bg};padding:9px 12px;font:400 13px/1.55 Consolas,Menlo,Courier,monospace;color:${cfg.fg};">${esc(sign === " " ? text : sign + " " + text)}</td>
+        </tr>`;
+      }).join("");
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0;">
+        <tr><td style="background:#0e0d13;border-radius:16px;padding:10px;">
+        <div style="padding:10px 12px 12px;font:700 10px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:2.2px;">WHAT CHANGED</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+        </td></tr></table>`);
+      continue;
+    }
     // scoreboard:  a block whose first line is [board] then LABEL | VERDICT per line
     if (b.startsWith("[board]")) {
       const lines = b.split(/\r?\n/).slice(1).filter(l => l.trim());
       const rows = lines.map((l, i) => {
         const [label, verdict = ""] = l.split("|").map(x => x.trim());
-        const bad = /FAIL|NOT EVALUABLE|STOP/i.test(verdict);
+        const bad = /FAIL|NOT EVALUABLE|STOP|ARCHIVE|RETRACTED|WITHDRAWN/i.test(verdict);
         return `<tr>
           <td style="padding:13px 14px;border-top:${i ? "1px solid #2a2932" : "0"};font:400 14px/1.4 Arial,Helvetica,sans-serif;color:#c9c8d2;">${inline(label)}</td>
           <td align="right" style="padding:13px 14px;border-top:${i ? "1px solid #2a2932" : "0"};font:700 12px/1.4 Arial,Helvetica,sans-serif;color:${bad ? SUN : "#8b8a92"};letter-spacing:1px;white-space:nowrap;">${esc(verdict)}</td>
