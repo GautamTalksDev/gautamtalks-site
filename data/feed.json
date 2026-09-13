@@ -1,6 +1,14 @@
 {
-  "updated": "2026-09-13T10:13:55.648Z",
+  "updated": "2026-09-13T23:32:38.877Z",
   "videos": [
+    {
+      "id": "vWmUneeUTSg",
+      "title": "I Published a Study That Proved Me Wrong",
+      "url": "https://www.youtube.com/watch?v=vWmUneeUTSg",
+      "thumb": "https://i.ytimg.com/vi/vWmUneeUTSg/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/vWmUneeUTSg/maxresdefault.jpg",
+      "date": "2026-09-13T23:31:18+00:00"
+    },
     {
       "id": "sCgQU8BPcoE",
       "title": "I Shipped 2 Projects This Week, but...",
@@ -16,14 +24,6 @@
       "thumb": "https://i.ytimg.com/vi/m0IjyVAO_Cs/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/m0IjyVAO_Cs/maxresdefault.jpg",
       "date": "2026-08-23T23:30:39+00:00"
-    },
-    {
-      "id": "HfxQOeVETFA",
-      "title": "We Had 36 Hours to Build an AI Safety System",
-      "url": "https://www.youtube.com/watch?v=HfxQOeVETFA",
-      "thumb": "https://i.ytimg.com/vi/HfxQOeVETFA/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/HfxQOeVETFA/maxresdefault.jpg",
-      "date": "2026-08-16T23:05:27+00:00"
     }
   ]
 }
