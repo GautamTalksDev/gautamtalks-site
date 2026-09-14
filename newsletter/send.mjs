@@ -135,6 +135,36 @@ function render(md) {
       out.push(`<div style="height:1px;background:${RULE};margin:32px 0;"></div>`);
       continue;
     }
+    // gauge:  [gauge] then LABEL | VALUE | SUFFIX per line. First line is the target.
+    if (b.startsWith("[gauge]")) {
+      const rows = b.split(/\r?\n/).slice(1).filter(l => l.trim()).map(l => {
+        const [label, val, suffix = ""] = l.split("|").map(x => x.trim());
+        return { label, n: parseFloat(val), suffix };
+      });
+      const max = Math.max(...rows.map(r => r.n)) || 1;
+      const bars = rows.map((r, i) => {
+        const pct = Math.max(3, Math.round((r.n / max) * 100));
+        const isTarget = i === 0;
+        const fill = isTarget ? "transparent" : SUN;
+        const border = isTarget ? `border:2px dashed ${SUN};` : "";
+        return `<tr><td style="padding:0 0 6px;font:700 11px/1 Arial,Helvetica,sans-serif;color:#8b8a92;letter-spacing:1.4px;">${esc(r.label.toUpperCase())}</td></tr>
+        <tr><td style="padding:0 0 18px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td width="${pct}%" style="padding:0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                <td style="background:${fill};${border}border-radius:6px;height:34px;padding:0 10px;font:700 15px/34px Arial,Helvetica,sans-serif;color:${isTarget ? SUN : INK};white-space:nowrap;">${esc(r.n + r.suffix)}</td>
+              </tr></table>
+            </td>
+            <td style="padding:0;">&nbsp;</td>
+          </tr></table>
+        </td></tr>`;
+      }).join("");
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0;">
+        <tr><td style="background:${INK};border-radius:18px;padding:24px 24px 8px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${bars}</table>
+        </td></tr></table>`);
+      continue;
+    }
     // diff:  a block starting [diff] then lines prefixed - or + or a space
     if (b.startsWith("[diff]")) {
       const lines = b.split(/\r?\n/).slice(1);
@@ -160,6 +190,8 @@ function render(md) {
     }
     // scoreboard:  a block whose first line is [board] then LABEL | VERDICT per line
     if (b.startsWith("[board]")) {
+      const firstLine = b.split(/\r?\n/)[0];
+      const heading = firstLine.slice(7).trim() || "WRITTEN BEFORE ANY CODE";
       const lines = b.split(/\r?\n/).slice(1).filter(l => l.trim());
       const rows = lines.map((l, i) => {
         const [label, verdict = ""] = l.split("|").map(x => x.trim());
@@ -171,7 +203,7 @@ function render(md) {
       }).join("");
       out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0;">
         <tr><td style="background:${INK};border-radius:18px;padding:8px 10px 10px;">
-        <div style="padding:14px 14px 8px;font:700 10px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:2.2px;">WRITTEN BEFORE ANY CODE</div>
+        <div style="padding:14px 14px 8px;font:700 10px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:2.2px;">${esc(heading.toUpperCase())}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
         </td></tr></table>`);
       continue;
