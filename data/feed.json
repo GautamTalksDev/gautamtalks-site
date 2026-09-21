@@ -1,6 +1,14 @@
 {
-  "updated": "2026-09-20T09:47:13.900Z",
+  "updated": "2026-09-21T10:39:53.360Z",
   "videos": [
+    {
+      "id": "dtZDDx56uG8",
+      "title": "Temperature 0 Is a Lie",
+      "url": "https://www.youtube.com/watch?v=dtZDDx56uG8",
+      "thumb": "https://i.ytimg.com/vi/dtZDDx56uG8/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/dtZDDx56uG8/maxresdefault.jpg",
+      "date": "2026-09-20T23:41:40+00:00"
+    },
     {
       "id": "vWmUneeUTSg",
       "title": "I Published a Study That Proved Me Wrong",
@@ -16,14 +24,6 @@
       "thumb": "https://i.ytimg.com/vi/sCgQU8BPcoE/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/sCgQU8BPcoE/maxresdefault.jpg",
       "date": "2026-09-06T23:05:04+00:00"
-    },
-    {
-      "id": "m0IjyVAO_Cs",
-      "title": "I Built 2 Websites for 2 Versions of Myself",
-      "url": "https://www.youtube.com/watch?v=m0IjyVAO_Cs",
-      "thumb": "https://i.ytimg.com/vi/m0IjyVAO_Cs/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/m0IjyVAO_Cs/maxresdefault.jpg",
-      "date": "2026-08-23T23:30:39+00:00"
     }
   ]
 }
