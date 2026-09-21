@@ -135,6 +135,18 @@ function render(md) {
       out.push(`<div style="height:1px;background:${RULE};margin:32px 0;"></div>`);
       continue;
     }
+    // stat:  [stat] then NUMBER on one line, caption on the next
+    if (b.startsWith("[stat]")) {
+      const lines = b.split(/\r?\n/).slice(1).filter(l => l.trim());
+      const num = lines[0] || "";
+      const cap = lines.slice(1).join(" ");
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0;">
+        <tr><td align="center" style="background:${INK};border-radius:18px;padding:32px 26px;">
+        <div style="font:800 54px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:-1px;">${esc(num)}</div>
+        ${cap ? `<div style="padding-top:14px;font:400 15px/1.55 Arial,Helvetica,sans-serif;color:#9d9ca6;">${inline(cap)}</div>` : ""}
+        </td></tr></table>`);
+      continue;
+    }
     // gauge:  [gauge] then LABEL | VALUE | SUFFIX per line. First line is the target.
     if (b.startsWith("[gauge]")) {
       const rows = b.split(/\r?\n/).slice(1).filter(l => l.trim()).map(l => {
