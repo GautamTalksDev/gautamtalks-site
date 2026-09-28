@@ -1,6 +1,14 @@
 {
-  "updated": "2026-09-27T10:32:14.656Z",
+  "updated": "2026-09-28T11:39:40.281Z",
   "videos": [
+    {
+      "id": "C6chAhTWvP4",
+      "title": "This AI Is 81% Sure. Only 47% of People Agree.",
+      "url": "https://www.youtube.com/watch?v=C6chAhTWvP4",
+      "thumb": "https://i.ytimg.com/vi/C6chAhTWvP4/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/C6chAhTWvP4/maxresdefault.jpg",
+      "date": "2026-09-28T04:19:52+00:00"
+    },
     {
       "id": "dtZDDx56uG8",
       "title": "Temperature 0 Is a Lie",
@@ -16,14 +24,6 @@
       "thumb": "https://i.ytimg.com/vi/vWmUneeUTSg/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/vWmUneeUTSg/maxresdefault.jpg",
       "date": "2026-09-13T23:31:18+00:00"
-    },
-    {
-      "id": "sCgQU8BPcoE",
-      "title": "I Shipped 2 Projects This Week, but...",
-      "url": "https://www.youtube.com/watch?v=sCgQU8BPcoE",
-      "thumb": "https://i.ytimg.com/vi/sCgQU8BPcoE/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/sCgQU8BPcoE/maxresdefault.jpg",
-      "date": "2026-09-06T23:05:04+00:00"
     }
   ]
 }
