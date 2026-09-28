@@ -135,6 +135,32 @@ function render(md) {
       out.push(`<div style="height:1px;background:${RULE};margin:32px 0;"></div>`);
       continue;
     }
+    // timeline:  [timeline] OPTIONAL HEADING, then STAMP | EVENT per line
+    if (b.startsWith("[timeline]")) {
+      const first = b.split(/\r?\n/)[0];
+      const heading = first.slice(10).trim() || "THE ORDER IT HAPPENED IN";
+      const rows = b.split(/\r?\n/).slice(1).filter(l => l.trim()).map((l, i, arr) => {
+        const [stamp, event = ""] = l.split("|").map(x => x.trim());
+        const last = i === arr.length - 1;
+        return `<tr>
+          <td width="16" valign="top" style="padding:0;">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="padding-top:6px;">
+              <table role="presentation" cellpadding="0" cellspacing="0"><tr><td width="11" height="11" style="background:${SUN};border-radius:11px;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+            </td></tr>
+            ${last ? "" : `<tr><td align="center" style="padding:3px 0 0 5px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td width="2" height="34" style="background:#2f2e38;font-size:0;line-height:0;">&nbsp;</td></tr></table></td></tr>`}</table>
+          </td>
+          <td valign="top" style="padding:0 0 ${last ? 0 : 16}px 16px;">
+            <div style="font:700 11px/1.3 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:1.4px;">${esc(stamp)}</div>
+            <div style="padding-top:5px;font:400 15px/1.5 Arial,Helvetica,sans-serif;color:#c9c8d2;">${inline(event)}</div>
+          </td></tr>`;
+      }).join("");
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0;">
+        <tr><td style="background:${INK};border-radius:18px;padding:24px 26px;">
+        <div style="padding-bottom:18px;font:700 10px/1 Arial,Helvetica,sans-serif;color:#8b8a92;letter-spacing:2.2px;">${esc(heading.toUpperCase())}</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+        </td></tr></table>`);
+      continue;
+    }
     // stat:  [stat] then NUMBER on one line, caption on the next
     if (b.startsWith("[stat]")) {
       const lines = b.split(/\r?\n/).slice(1).filter(l => l.trim());
