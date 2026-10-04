@@ -135,6 +135,28 @@ function render(md) {
       out.push(`<div style="height:1px;background:${RULE};margin:32px 0;"></div>`);
       continue;
     }
+    // blackout:  [blackout] OPTIONAL LABEL, then a big line, then an optional caption
+    if (b.startsWith("[blackout]")) {
+      const first = b.split(/\r?\n/)[0];
+      const label = first.slice(10).trim();
+      const lines = b.split(/\r?\n/).slice(1).filter(l => l.trim());
+      const big = lines[0] || "";
+      const cap = lines.slice(1).join(" ");
+      out.push(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:30px 0;">
+        <tr><td align="center" style="background:#07070b;border-radius:20px;padding:44px 28px 40px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr>
+            <td width="56" height="56" align="center" valign="middle" style="background:#2a2410;border-radius:56px;box-shadow:0 0 34px 10px rgba(255,210,63,0.30);">
+              <table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr>
+                <td width="20" height="20" style="background:${SUN};border-radius:20px;box-shadow:0 0 18px 6px rgba(255,210,63,0.75);font-size:0;line-height:0;">&nbsp;</td>
+              </tr></table>
+            </td>
+          </tr></table>
+          ${label ? `<div style="padding-top:24px;font:700 10px/1 Arial,Helvetica,sans-serif;color:${SUN};letter-spacing:2.6px;">${esc(label.toUpperCase())}</div>` : ""}
+          <div style="padding-top:${label ? 14 : 26}px;font:800 26px/1.3 Arial,Helvetica,sans-serif;color:#ffffff;letter-spacing:-.3px;">${inline(big)}</div>
+          ${cap ? `<div style="padding-top:14px;font:400 15px/1.6 Arial,Helvetica,sans-serif;color:#8b8a92;">${inline(cap)}</div>` : ""}
+        </td></tr></table>`);
+      continue;
+    }
     // timeline:  [timeline] OPTIONAL HEADING, then STAMP | EVENT per line
     if (b.startsWith("[timeline]")) {
       const first = b.split(/\r?\n/)[0];
