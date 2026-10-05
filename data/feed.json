@@ -1,6 +1,14 @@
 {
-  "updated": "2026-10-04T11:05:20.194Z",
+  "updated": "2026-10-05T12:14:28.800Z",
   "videos": [
+    {
+      "id": "tGtbDNr9qvE",
+      "title": "The AI Tool You Approved Is Not the One Running Now",
+      "url": "https://www.youtube.com/watch?v=tGtbDNr9qvE",
+      "thumb": "https://i.ytimg.com/vi/tGtbDNr9qvE/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/tGtbDNr9qvE/maxresdefault.jpg",
+      "date": "2026-10-04T23:05:28+00:00"
+    },
     {
       "id": "C6chAhTWvP4",
       "title": "Jev Is 81% Sure. Only 47% of People Agree.",
@@ -16,14 +24,6 @@
       "thumb": "https://i.ytimg.com/vi/dtZDDx56uG8/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/dtZDDx56uG8/maxresdefault.jpg",
       "date": "2026-09-20T23:41:40+00:00"
-    },
-    {
-      "id": "vWmUneeUTSg",
-      "title": "I Published a Study That Proved Me Wrong",
-      "url": "https://www.youtube.com/watch?v=vWmUneeUTSg",
-      "thumb": "https://i.ytimg.com/vi/vWmUneeUTSg/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/vWmUneeUTSg/maxresdefault.jpg",
-      "date": "2026-09-13T23:31:18+00:00"
     }
   ]
 }
