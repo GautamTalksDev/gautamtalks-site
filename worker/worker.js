@@ -138,8 +138,11 @@ const RL = {
 const MAIL_CAP = { max: 3, ttl: 21600, prefix: "m:" };
 
 // Pause between sending the /subscribe answer and starting the address-dependent
-// work (see processSignup). The confirmation email leaves this much later.
+// work (see processSignup): 100 ms so the answer has been delivered, plus a random
+// 0 to 500 ms so nobody can line a request of their own up with that work and feel
+// it through shared resources. The confirmation email leaves at most 0.6 s later.
 const ANSWER_FIRST_MS = 100;
+const ANSWER_JITTER_MS = 500;
 
 // Retention for unconfirmed signups. The privacy page promises "never kept longer
 // than 30 days"; 29 days plus the hourly cron leaves a margin of almost a day.
@@ -590,9 +593,11 @@ export default {
     // timing, nor the quota it used can tell new, pending, confirmed or capped apart.
     // It starts only after a short pause, so that even a busy runtime has delivered
     // the answer before any of it runs (measured in workerd: without the pause, the
-    // background work of the mail-sending states slowed delivery by about 15 ms).
+    // background work of the mail-sending states slowed delivery by about 15 ms),
+    // and the pause has a random part, so its timing cannot be predicted either.
     // (No storage error reaches the visitor any more: it is logged, without PII.)
-    const work = new Promise((r) => setTimeout(r, ANSWER_FIRST_MS))
+    const pause = ANSWER_FIRST_MS + (crypto.getRandomValues(new Uint32Array(1))[0] % (ANSWER_JITTER_MS + 1));
+    const work = new Promise((r) => setTimeout(r, pause))
       .then(() => processSignup(env, typed, emailHash, profile))
       .catch(() => {
         console.log(JSON.stringify({ task: "subscribe", error: "background_failed" }));
