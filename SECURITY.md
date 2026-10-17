@@ -73,7 +73,7 @@ real gap, and it is free to close.
 Use **Set static** (not add) so exactly one authoritative copy of each header reaches the browser;
 duplicated CSP headers are enforced as an unpredictable intersection.
 
-5. Once the headers are live, delete the CSP meta tags from the three HTML files if you like —
+5. Once the headers are live, delete the CSP meta tags from the three HTML files if you like,
    or leave them as defence in depth. Leaving them is fine and costs nothing.
 
 ---
@@ -100,8 +100,12 @@ duplicated CSP headers are enforced as an unpredictable intersection.
 - **Double opt-in** with random 122-bit tokens (`crypto.randomUUID`); unconfirmed records
   are never emailed. The emailed link opens a page with a button, and only that button's
   POST confirms, so mail scanners that open links cannot confirm on someone's behalf.
-- **One-click unsubscribe** that hard-deletes the record, by link (GET) and by RFC 8058
-  `List-Unsubscribe-Post` (POST, used by Gmail and Yahoo).
+- **Unsubscribe that hard-deletes the record**: in one click through RFC 8058
+  `List-Unsubscribe-Post` (POST, used by Gmail and Yahoo), or through the link in every
+  newsletter, which opens a page whose single button POSTs back with the same one-time
+  link token. A GET never deletes, so link scanners cannot unsubscribe anyone. The
+  confirm and unsubscribe pages carry no script, and their CSP allows only their own
+  style block (by hash) and form posts back to the worker.
 - **No PII in logs**, ever.
 - Security headers including `frame-ancestors 'none'` on every JSON and HTML worker response.
 

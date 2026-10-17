@@ -20,7 +20,7 @@ Live at **[gautamtalks.com](https://gautamtalks.com)**
 |---|---|
 | **A hidden 3D short** | Click the photo on the homepage. A low-poly bedroom scene built entirely in code with three.js, no model files and no textures, that plays a 45 second animated story and ends on the site's thesis. |
 | **A Hub that tunes itself** | Three questions, four modes, and the page reorders itself around your answers. It remembers you without a login and without an account. |
-| **A newsletter I own end to end** | The Climb Log. Double opt-in, alias-proof deduplication, one-click unsubscribe that actually deletes, and automatic data retention. No mailing-list vendor sits between me and the list. |
+| **A newsletter I own end to end** | The Climb Log. Double opt-in, alias-proof deduplication, an unsubscribe that actually deletes (RFC 8058 one-click in mail apps, a scanner-proof one-button page from the link), and automatic data retention. No mailing-list vendor sits between me and the list. |
 | **A site that changes daily** | The palette shifts by weekday, the motto rotates through the year, and the video feed rewrites itself from YouTube every morning. Nobody touches it. |
 
 ---

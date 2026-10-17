@@ -16,6 +16,9 @@
  *  - Turnstile fails closed, must be solved on gautamtalks.com, by the signup
  *    widget (action "subscribe")
  *  - double opt-in token (CASL/GDPR: express consent required in Canada)
+ *  - link scanners cannot act for people: GET /confirm and GET /unsubscribe only
+ *    show a button, and only that button's POST (or an RFC 8058 one-click POST)
+ *    changes anything
  *  - no PII written to logs, ever
  */
 
@@ -267,6 +270,58 @@ async function processSignup(env, typed, emailHash, profile) {
 }
 
 
+/* ── Small HTML pages (confirm, unsubscribe) ─────────────────────────────
+   No script at all. The only value from the request is the link token, which
+   is checked against /^[a-f0-9]{32,64}$/ before any page is built and is
+   HTML-escaped anyway. The single <style> block is allowed by its SHA-256
+   hash, so the CSP needs no 'unsafe-inline'; form-action 'self' means the
+   button can only POST back to this worker; frame-ancestors 'none' and
+   X-Frame-Options stop anyone framing the page to trick a click. */
+const PAGE_CSS =
+  "body{background:#f7f4ec;color:#16151c;font-family:system-ui,sans-serif;display:grid;" +
+  "place-items:center;min-height:100vh;margin:0;text-align:center;padding:24px}" +
+  "a{color:#2e3df0}h1{font-size:2rem;margin:0 0 12px}" +
+  "button{background:#ffd23f;color:#16151c;border:0;border-radius:999px;padding:16px 34px;" +
+  "font:700 15px system-ui,sans-serif;letter-spacing:.3px;cursor:pointer;margin:8px 0 4px}";
+let pageCssSource = null; // "'sha256-...'" for PAGE_CSS, computed once per isolate
+async function cssHash() {
+  if (!pageCssSource) {
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(PAGE_CSS));
+    pageCssSource = "'sha256-" + btoa(String.fromCharCode(...new Uint8Array(d))) + "'";
+  }
+  return pageCssSource;
+}
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+// A one-button form that POSTs back to the same path with the same one-time link
+// token. The token in the URL is the CSRF protection: without the secret 122-bit
+// token a cross-site form cannot name anyone, and once used it no longer exists.
+// `via` adds a marker to the query string (never to the body: no body is read).
+const postButton = (path, token, label, via = "") =>
+  `<form method="POST" action="${path}?t=${esc(token)}${via ? "&amp;via=" + esc(via) : ""}">` +
+  `<button type="submit">${esc(label)}</button></form>`;
+
+async function htmlPage(status, { title, h1, p, form = "" }) {
+  return new Response(
+    `<!doctype html><html lang="en"><meta charset="utf-8">` +
+    `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<meta name="robots" content="noindex,nofollow">` +
+    `<title>${esc(title)}</title><style>${PAGE_CSS}</style>` +
+    `<div><h1>${esc(h1)}</h1><p>${esc(p)}</p>${form}` +
+    `<p><a href="https://gautamtalks.com/">Back to gautamtalks.com</a></p></div>`,
+    { status, headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "content-security-policy": `default-src 'none'; style-src ${await cssHash()}; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-robots-tag": "noindex, nofollow",
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+      "permissions-policy": "geolocation=(), microphone=(), camera=(), interest-cohort=()",
+    } }
+  );
+}
+
 /* ── Branded confirmation email ──────────────────────────────────────────
    Table-based layout with inline styles: the only thing that renders
    reliably across Gmail, Outlook, and Apple Mail. Dark card, sun-yellow
@@ -323,7 +378,7 @@ function confirmEmailHTML(link) {
         <tr><td style="padding:7px 0;">&#127957;&nbsp; First word when the Basecamp opens</td></tr>
       </table>
       <p style="margin:14px 0 0;font:400 11px/1.6 Arial,Helvetica,sans-serif;color:${MUTE};letter-spacing:1px;">
-        OCCASIONAL &middot; NEVER SPAM &middot; ONE-CLICK OUT
+        OCCASIONAL &middot; NEVER SPAM &middot; EASY OUT
       </p>
     </td></tr>
 
@@ -418,58 +473,41 @@ export default {
       }
       const page = {
         ask: { title: "Confirm your spot", h1: "One last click \u26A1", p: "Press the button and the Climb Log is yours.",
-               extra: `<form method="POST" action="/confirm?t=${token}"><button type="submit">CONFIRM MY SPOT \u26A1</button></form>` },
-        ok:  { title: "You're in", h1: "You're on the list \u26A1", p: "Field notes from the climb are on the way.", extra: "" },
-        bad: { title: "Link expired", h1: "That link is no longer valid", p: "Try signing up again.", extra: "" },
+               form: postButton("/confirm", token, "CONFIRM MY SPOT \u26A1") },
+        ok:  { title: "You're in", h1: "You're on the list \u26A1", p: "Field notes from the climb are on the way." },
+        bad: { title: "Link expired", h1: "That link is no longer valid", p: "Try signing up again." },
       }[state];
-      return new Response(
-        `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
-         <title>${page.title}</title>
-         <style>body{background:#f7f4ec;color:#16151c;font-family:system-ui,sans-serif;display:grid;
-         place-items:center;min-height:100vh;margin:0;text-align:center;padding:24px}
-         a{color:#2e3df0}h1{font-size:2rem;margin:0 0 12px}
-         button{background:#ffd23f;color:#16151c;border:0;border-radius:999px;padding:16px 34px;
-         font:700 15px system-ui,sans-serif;letter-spacing:.3px;cursor:pointer;margin:8px 0 4px}</style>
-         <div><h1>${page.h1}</h1>
-         <p>${page.p}</p>${page.extra}
-         <p><a href="https://gautamtalks.com/">Back to gautamtalks.com</a></p></div>`,
-        { status: state === "bad" ? 410 : 200, headers: {
-           "content-type": "text/html; charset=utf-8",
-           "cache-control": "no-store",
-           "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
-           "x-content-type-options": "nosniff",
-           "referrer-policy": "no-referrer",
-           "strict-transport-security": "max-age=31536000; includeSubDomains",
-           "permissions-policy": "geolocation=(), microphone=(), camera=(), interest-cohort=()"
-         } }
-      );
+      return htmlPage(state === "bad" ? 410 : 200, page);
     }
 
-    // ---- unsubscribe (legally required, one click) ----
-    // GET is the link in every email. POST is RFC 8058 one-click: Gmail and Yahoo
-    // POST here when the List-Unsubscribe-Post header is present, which send.mjs
-    // sets on every issue. Before this, that POST hit the 404 below and the
-    // person stayed subscribed.
+    // ---- unsubscribe (legally required) ----
+    // GET is the link in every newsletter. Link scanners (corporate "safe links"
+    // gateways, antivirus) open every link in an email with GET, so a GET that
+    // deleted would silently unsubscribe people. GET therefore only shows a page
+    // with one button; the button POSTs back here with the same link token.
+    // POST is also RFC 8058 one-click: Gmail and Yahoo POST
+    // "List-Unsubscribe=One-Click" here when the List-Unsubscribe-Post header is
+    // present, which send.mjs sets on every issue. Every POST with a well-formed
+    // token deletes, exactly as before, and no POST body is ever read; only the
+    // reply differs: our own button (its action carries &via=page) gets an HTML
+    // page, anything else the plain "Unsubscribed" mail providers expect.
+    // Unknown and already-used tokens get the same answers (no oracle).
     if (url.pathname === "/unsubscribe" && (request.method === "GET" || request.method === "POST")) {
       const token = url.searchParams.get("t") || "";
       if (!/^[a-f0-9]{32,64}$/.test(token)) return new Response("Invalid link", { status: 400 });
-      await env.DB.prepare("DELETE FROM subscribers WHERE unsub_token = ?").bind(token).run();
-      if (request.method === "POST") {
-        return new Response("Unsubscribed", { status: 200, headers: {
-          "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
+      if (request.method === "GET") {
+        // no database access: the same page for every well-formed token
+        return htmlPage(200, { title: "Unsubscribe", h1: "Leaving the Climb Log?",
+          p: "Press the button and your email is deleted from the list, not just flagged.",
+          form: postButton("/unsubscribe", token, "UNSUBSCRIBE", "page") });
       }
-      return new Response(
-        `<!doctype html><meta charset=utf-8><title>Unsubscribed</title>
-         <p style="font-family:system-ui">You're unsubscribed. No hard feelings. The videos are always free.</p>`,
-        { status: 200, headers: {
-           "content-type": "text/html; charset=utf-8",
-           "cache-control": "no-store",
-           "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
-           "x-content-type-options": "nosniff",
-           "referrer-policy": "no-referrer",
-           "strict-transport-security": "max-age=31536000; includeSubDomains"
-         } }
-      );
+      await env.DB.prepare("DELETE FROM subscribers WHERE unsub_token = ?").bind(token).run();
+      if (url.searchParams.get("via") === "page") {
+        return htmlPage(200, { title: "Unsubscribed", h1: "You're unsubscribed",
+          p: "No hard feelings. The videos are always free." });
+      }
+      return new Response("Unsubscribed", { status: 200, headers: {
+        "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
     }
 
     if (request.method !== "POST" || url.pathname !== "/subscribe") {
