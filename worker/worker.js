@@ -11,7 +11,8 @@
  *  - email validated; mail goes to the address as typed, and an alias-folded form
  *    is used only for the SHA-256 de-duplication hash
  *  - same response for new, pending and confirmed addresses (no list lookups)
- *  - Turnstile fails closed and must be solved on gautamtalks.com
+ *  - Turnstile fails closed, must be solved on gautamtalks.com, by the signup
+ *    widget (action "subscribe")
  *  - double opt-in token (CASL/GDPR: express consent required in Canada)
  *  - no PII written to logs, ever
  */
@@ -23,6 +24,10 @@ const ALLOWED_ORIGINS = new Set([
 // Turnstile reports where the challenge was solved. A token solved on any other
 // site (a farm, a clone of the page) is rejected.
 const ALLOWED_HOSTNAMES = new Set(["gautamtalks.com", "www.gautamtalks.com"]);
+// The signup widget is rendered with this action (data-action on #turnstileBox in
+// hub/index.html, passed by hub/hub.js), and siteverify reports it back. A token
+// minted by any other widget or action under the same site key is rejected.
+const TURNSTILE_ACTION = "subscribe";
 
 const json = (data, status, origin) =>
   new Response(JSON.stringify(data), {
@@ -99,8 +104,12 @@ async function verifyTurnstile(token, ip, secret) {
       method: "POST",
       body,
     });
+    if (!r.ok) return false;
     const out = await r.json();
-    return out.success === true && ALLOWED_HOSTNAMES.has(out.hostname);
+    return out !== null && typeof out === "object" &&
+      out.success === true &&
+      ALLOWED_HOSTNAMES.has(out.hostname) &&
+      out.action === TURNSTILE_ACTION;
   } catch {
     return false;
   }

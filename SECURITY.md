@@ -82,7 +82,9 @@ duplicated CSP headers are enforced as an unpredictable intersection.
 
 - **CORS allowlist**: only `gautamtalks.com` and `www.gautamtalks.com` may call it.
 - **Turnstile captcha** verification. Fails closed: with no `TURNSTILE_SECRET` every
-  signup is refused, and a token solved on any hostname other than gautamtalks.com is rejected.
+  signup is refused, and a token is accepted only if it was solved on gautamtalks.com
+  by the signup widget itself (its action, `subscribe`, is checked server-side), so a
+  token from any other site or any other widget under the same site key is rejected.
 - **Rate limiting** via KV, with the IP salted and hashed (IPv6 counted per /64):
   6 requests per 5 minutes, 8 sends per 6 hours per network, and at most 3
   confirmation emails per inbox per 6 hours.

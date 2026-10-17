@@ -4,7 +4,7 @@
 
   /* =============== EDIT ZONE =============== */
   const SIGNUP_ENDPOINT = "https://gautamtalks-signup.developwith-gt.workers.dev/subscribe"; // paste your worker URL + "/subscribe" after deploying
-  const TURNSTILE_SITEKEY = "0x4AAAAAAEEpHzVeMh1NpyhY"; // optional: Cloudflare Turnstile site key
+  const TURNSTILE_SITEKEY = "0x4AAAAAAEEpHzVeMh1NpyhY"; // required: the worker refuses signups without a Turnstile token
   const LINKS = {
     calendly: "https://cal.com/gautamtalks/chat",
     discord: "",
@@ -308,12 +308,16 @@
     show("hbIntro");
   }
 
-  /* optional captcha */
+  /* captcha. The action comes from data-action on #turnstileBox (hub/index.html) and
+     must equal TURNSTILE_ACTION in worker/worker.js, which rejects any other action. */
   if (TURNSTILE_SITEKEY) {
     const s = document.createElement("script");
     s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     s.async = true; s.defer = true;
-    s.onload = () => window.turnstile && window.turnstile.render("#turnstileBox", { sitekey: TURNSTILE_SITEKEY });
+    s.onload = () => window.turnstile && window.turnstile.render("#turnstileBox", {
+      sitekey: TURNSTILE_SITEKEY,
+      action: $("#turnstileBox").dataset.action
+    });
     document.head.appendChild(s);
   }
 })();
