@@ -14,7 +14,7 @@ position matters as much as content.
 default-src 'none'; script-src 'self' https://challenges.cloudflare.com;
 style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
 font-src https://fonts.gstatic.com; img-src 'self' data: https://i.ytimg.com;
-connect-src 'self' https://*.workers.dev https://challenges.cloudflare.com;
+connect-src 'self' https://gautamtalks-signup.developwith-gt.workers.dev https://challenges.cloudflare.com;
 frame-src https://challenges.cloudflare.com; form-action 'none';
 base-uri 'none'; object-src 'none'; manifest-src 'self'; worker-src 'none';
 upgrade-insecure-requests
@@ -81,16 +81,23 @@ duplicated CSP headers are enforced as an unpredictable intersection.
 ## The signup worker
 
 - **CORS allowlist**: only `gautamtalks.com` and `www.gautamtalks.com` may call it.
-- **Turnstile captcha** verification (set `TURNSTILE_SECRET` to enable).
-- **Rate limiting**: 5 submissions per IP per hour, via KV, with the IP salted and hashed.
+- **Turnstile captcha** verification. Fails closed: with no `TURNSTILE_SECRET` every
+  signup is refused, and a token solved on any hostname other than gautamtalks.com is rejected.
+- **Rate limiting** via KV, with the IP salted and hashed (IPv6 counted per /64):
+  6 requests per 5 minutes, 8 sends per 6 hours per network, and at most 3
+  confirmation emails per inbox per 6 hours.
+- **No list lookups**: new, pending and already-confirmed addresses get the same answer.
 - **Honeypot field + submit-timing check** catches naive bots without bothering humans.
 - **Body limits**: rejects non-JSON content types and anything over 4 KB.
 - **Input validation**: email length-capped and pattern-checked; profile answers allowlisted.
 - **Secrets** live in Wrangler's encrypted store, never in the repository.
-- **Double opt-in** with random 128-bit tokens; unconfirmed records are never emailed.
-- **One-click unsubscribe** that hard-deletes the record.
+- **Double opt-in** with random 122-bit tokens (`crypto.randomUUID`); unconfirmed records
+  are never emailed. The emailed link opens a page with a button, and only that button's
+  POST confirms, so mail scanners that open links cannot confirm on someone's behalf.
+- **One-click unsubscribe** that hard-deletes the record, by link (GET) and by RFC 8058
+  `List-Unsubscribe-Post` (POST, used by Gmail and Yahoo).
 - **No PII in logs**, ever.
-- Full security headers including `frame-ancestors 'none'` on every worker response.
+- Security headers including `frame-ancestors 'none'` on every JSON and HTML worker response.
 
 ---
 
@@ -111,5 +118,7 @@ Before Cloudflare expect a mid grade (headers missing at the origin); after, exp
 
 ## Reporting
 
-Found something? Contact details are on gautamkhosla.com. No bug bounty, but genuine
+Found something? Report it privately through GitHub (Security tab, "Report a
+vulnerability") or by email to developwith.gt@gmail.com. Also published at
+https://gautamtalks.com/.well-known/security.txt (RFC 9116). No bug bounty, but genuine
 reports get a fast reply and public credit if you want it.
