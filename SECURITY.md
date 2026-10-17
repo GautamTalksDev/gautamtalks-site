@@ -86,9 +86,13 @@ duplicated CSP headers are enforced as an unpredictable intersection.
   by the signup widget itself (its action, `subscribe`, is checked server-side), so a
   token from any other site or any other widget under the same site key is rejected.
 - **Rate limiting** via KV, with the IP salted and hashed (IPv6 counted per /64):
-  6 requests per 5 minutes, 8 sends per 6 hours per network, and at most 3
-  confirmation emails per inbox per 6 hours.
-- **No list lookups**: new, pending and already-confirmed addresses get the same answer.
+  6 requests per 5 minutes, 8 accepted signups per 6 hours per network (every accepted
+  signup counts, whatever state its address is in), and at most 3 confirmation emails
+  per inbox per 6 hours.
+- **No list lookups**: new, pending, already-confirmed and capped addresses get the same
+  answer, in the same time, from the same quota. Everything that depends on the address
+  (the row write, the inbox cap, the confirmation email) runs after the answer has been
+  sent (`ctx.waitUntil`), so neither the reply nor its timing says anything about the list.
 - **Honeypot field + submit-timing check** catches naive bots without bothering humans.
 - **Body limits**: rejects non-JSON content types and anything over 4 KB.
 - **Input validation**: email length-capped and pattern-checked; profile answers allowlisted.

@@ -10,7 +10,9 @@
  *  - per-IP rate limiting via KV (IPv6 limited per /64), plus a per-inbox mail cap
  *  - email validated; mail goes to the address as typed, and an alias-folded form
  *    is used only for the SHA-256 de-duplication hash
- *  - same response for new, pending and confirmed addresses (no list lookups)
+ *  - same response, same timing and same quota use for new, pending, confirmed
+ *    and capped addresses: the address-dependent work runs after the answer
+ *    (ctx.waitUntil), so the form cannot be used to test who is on the list
  *  - Turnstile fails closed, must be solved on gautamtalks.com, by the signup
  *    widget (action "subscribe")
  *  - double opt-in token (CASL/GDPR: express consent required in Canada)
@@ -117,9 +119,11 @@ async function verifyTurnstile(token, ip, secret) {
 
 // Two-tier limiter.
 //  - burst:  6 requests / 5 min   (stops rapid hammering)
-//  - signup: 8 NEW subscriptions / 6 h (stops list stuffing)
-// Failed validation, duplicates and already-subscribed do NOT consume signup
-// quota, so honest people retrying a typo are never punished.
+//  - signup: 8 accepted signup requests / 6 h per network (stops list stuffing)
+// Failed validation does NOT consume signup quota, so honest people retrying a
+// typo are never punished. Every request that passes validation and Turnstile
+// DOES, whatever state its address is in: if only real sends counted, "use 7,
+// submit a target, submit one more" would reveal whether the target is on the list.
 const RL = {
   burst:  { max: 6, ttl: 300,   prefix: "b:" },
   signup: { max: 8, ttl: 21600, prefix: "s:" },
@@ -129,6 +133,10 @@ const RL = {
 // however many networks the requests come from (stops using the form to mail-bomb
 // someone, which would also burn the sending domain's reputation).
 const MAIL_CAP = { max: 3, ttl: 21600, prefix: "m:" };
+
+// Pause between sending the /subscribe answer and starting the address-dependent
+// work (see processSignup). The confirmation email leaves this much later.
+const ANSWER_FIRST_MS = 100;
 
 // Retention for unconfirmed signups. The privacy page promises "never kept longer
 // than 30 days"; 29 days plus the hourly cron leaves a margin of almost a day.
@@ -184,6 +192,78 @@ async function checkSignupQuota(env, ip) {
 async function consumeSignupQuota(env, quota) {
   if (!env.RATE || !quota || !quota.key) return;
   await env.RATE.put(quota.key, String(quota.hits + 1), { expirationTtl: RL.signup.ttl });
+}
+
+// Everything that depends on WHICH address was submitted: the row write, the inbox
+// cap and the confirmation email. fetch() runs this only after the answer has been
+// sent (ctx.waitUntil), so the answer is the same work, the same bytes and the same
+// time for a new, pending, confirmed or capped address, and cannot reveal which.
+async function processSignup(env, typed, emailHash, profile) {
+  // Inbox cap first: once it is reached nothing is written, so the link in the
+  // newest email that did go out keeps working.
+  const mailCap = await checkMailCap(env, emailHash);
+  if (!mailCap.ok) return;
+
+  const token = crypto.randomUUID().replace(/-/g, "");
+  const unsub = crypto.randomUUID().replace(/-/g, "");
+  const now = new Date().toISOString();
+
+  // The 10-minute resend window is enforced INSIDE the write, so it is atomic:
+  // D1 serialises writes, so when many requests for one address arrive at once
+  // (from many networks), exactly one wins the row per window and only the winner
+  // sends mail and counts against the inbox cap.
+  const resendCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  let stored;
+  try {
+    // New address: insert. Pending address: store the NEW token and restart its
+    // clock, so the link in the newest email is the one that works.
+    // A confirmed row is never touched (the WHERE on the upsert).
+    stored = await env.DB.prepare(
+      `INSERT INTO subscribers (email, email_hash, profile, consent_at, token, unsub_token, confirmed, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+       ON CONFLICT(email_hash) DO UPDATE SET
+         email = excluded.email, profile = excluded.profile, consent_at = excluded.consent_at,
+         token = excluded.token, created_at = excluded.created_at
+       WHERE subscribers.confirmed = 0 AND subscribers.created_at <= ?`
+    ).bind(typed, emailHash, JSON.stringify(profile), now, token, unsub, now, resendCutoff).run();
+  } catch {
+    console.log(JSON.stringify({ task: "subscribe", error: "storage_failed" }));
+    return;
+  }
+  // Nothing written: already confirmed, or this window's email already went out
+  // (maybe from a concurrent request). No mail, no inbox cap used.
+  if (!stored.meta || !(stored.meta.changes > 0)) return;
+  await consumeMailCap(env, mailCap);
+  if (!env.RESEND_KEY) return;
+
+  // the confirmation email (double opt-in) via Resend
+  const link = `${env.WORKER_URL}/confirm?t=${token}`;
+  const html = confirmEmailHTML(link);
+  const text =
+    "ASCEND HIGHER\n\n" +
+    "You're one click from the Climb Log.\n\n" +
+    "Confirm here: " + link + "\n\n" +
+    "What lands in your inbox: what I built and what broke, the links worth keeping, " +
+    "and first word when the Basecamp opens. Occasional. Never spam.\n\n" +
+    "If you didn't request this, ignore this email and nothing happens.\n\n" +
+    "Gautam Talks\ngautamtalks.com";
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { authorization: `Bearer ${env.RESEND_KEY}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        from: env.FROM_ADDRESS || "Gautam Talks <hello@gautamtalks.com>",
+        to: [typed],
+        subject: "One click and you're on the Climb Log \u26A1",
+        html,
+        text
+      }),
+    });
+    // status code only, never the address
+    if (!r.ok) console.log(JSON.stringify({ task: "subscribe", error: "mail_failed", status: r.status }));
+  } catch {
+    console.log(JSON.stringify({ task: "subscribe", error: "mail_failed" }));
+  }
 }
 
 
@@ -295,7 +375,7 @@ export default {
     }
   },
 
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get("Origin") || "";
     const allowed = ALLOWED_ORIGINS.has(origin) ? origin : "";
     const url = new URL(request.url);
@@ -457,82 +537,30 @@ export default {
 
     const emailHash = await sha256(email + (env.EMAIL_SALT || ""));
 
-    // Network quota is checked BEFORE the address is looked up, so a 429 reveals
-    // nothing about any address. Only a request that actually sends mail consumes it.
+    // Network quota: decided before anything about the address is looked at, so a
+    // 429 reveals nothing, and consumed by EVERY request that gets this far, so the
+    // next request's answer reveals nothing either (see RL above).
     const quota = await checkSignupQuota(env, ip);
     if (!quota.ok) {
       return json({ error: "rate_limited", retryAfter: quota.retryAfter,
                     message: "Signup limit reached for this network." }, 429, allowed);
     }
-
-    const existing = await env.DB.prepare(
-      "SELECT confirmed, created_at FROM subscribers WHERE email_hash = ?"
-    ).bind(emailHash).first();
-    // Already confirmed: nothing to send, same answer as everyone else.
-    if (existing && existing.confirmed === 1) return accepted();
-    // Pending: allow a resend, but not more than once every 10 minutes.
-    if (existing && Date.now() - new Date(existing.created_at).getTime() < 10 * 60 * 1000) return accepted();
-    // And never more than MAIL_CAP.max confirmation emails per inbox per window.
-    const mailCap = await checkMailCap(env, emailHash);
-    if (!mailCap.ok) return accepted();
-
-    const token = crypto.randomUUID().replace(/-/g, "");
-    const unsub = crypto.randomUUID().replace(/-/g, "");
-    const now = new Date().toISOString();
-
-    // The 10-minute resend window is enforced again INSIDE the write, so it is atomic:
-    // D1 serialises writes, so when many requests for one address arrive at once
-    // (from many networks), exactly one wins the row per window and only the winner
-    // sends mail and counts against the caps. The checks above are just a fast path.
-    const resendCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    let stored;
-    try {
-      // New address: insert. Pending address: store the NEW token and restart its
-      // clock, so the link in the newest email is the one that works (previously
-      // only the profile was updated and every resent link was dead on arrival).
-      // A confirmed row is never touched (the WHERE on the upsert).
-      stored = await env.DB.prepare(
-        `INSERT INTO subscribers (email, email_hash, profile, consent_at, token, unsub_token, confirmed, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?)
-         ON CONFLICT(email_hash) DO UPDATE SET
-           email = excluded.email, profile = excluded.profile, consent_at = excluded.consent_at,
-           token = excluded.token, created_at = excluded.created_at
-         WHERE subscribers.confirmed = 0 AND subscribers.created_at <= ?`
-      ).bind(typed, emailHash, JSON.stringify(profile), now, token, unsub, now, resendCutoff).run();
-    } catch (e) {
-      return json({ error: "storage_failed" }, 500, allowed);
-    }
-    // Nothing written: confirmed meanwhile, or a concurrent request already sent
-    // this window's email. Same answer, no mail, no quota used.
-    if (!stored.meta || !(stored.meta.changes > 0)) return accepted();
     await consumeSignupQuota(env, quota);
-    await consumeMailCap(env, mailCap);
 
-    // send the confirmation email (double opt-in) via Resend
-    if (env.RESEND_KEY) {
-      const link = `${env.WORKER_URL}/confirm?t=${token}`;
-      const html = confirmEmailHTML(link);
-      const text =
-        "ASCEND HIGHER\n\n" +
-        "You're one click from the Climb Log.\n\n" +
-        "Confirm here: " + link + "\n\n" +
-        "What lands in your inbox: what I built and what broke, the links worth keeping, " +
-        "and first word when the Basecamp opens. Occasional. Never spam.\n\n" +
-        "If you didn't request this, ignore this email and nothing happens.\n\n" +
-        "Gautam Talks\ngautamtalks.com";
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { authorization: `Bearer ${env.RESEND_KEY}`, "content-type": "application/json" },
-        body: JSON.stringify({
-          from: env.FROM_ADDRESS || "Gautam Talks <hello@gautamtalks.com>",
-          to: [typed],
-          subject: "One click and you're on the Climb Log \u26A1",
-          html,
-          text
-        }),
-      }).catch(() => {});
-    }
-
+    // From here the answer is fixed and identical for every address. The work that
+    // depends on the address runs after it is sent, so neither the answer, nor its
+    // timing, nor the quota it used can tell new, pending, confirmed or capped apart.
+    // It starts only after a short pause, so that even a busy runtime has delivered
+    // the answer before any of it runs (measured in workerd: without the pause, the
+    // background work of the mail-sending states slowed delivery by about 15 ms).
+    // (No storage error reaches the visitor any more: it is logged, without PII.)
+    const work = new Promise((r) => setTimeout(r, ANSWER_FIRST_MS))
+      .then(() => processSignup(env, typed, emailHash, profile))
+      .catch(() => {
+        console.log(JSON.stringify({ task: "subscribe", error: "background_failed" }));
+      });
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
+    else await work; // Cloudflare always passes ctx; only bare test harnesses do not
     return accepted();
   },
 };
