@@ -14,3 +14,9 @@ database_id = "e477f0c4-cb7e-4503-b7b5-cfa129608d6d"
 [[kv_namespaces]]
 binding = "RATE"
 id = "6eddba5f539640d8a8093c49ce2bc51c"
+
+# Daily run of scheduled() in worker.js: deletes unconfirmed signups older than
+# 30 days and expires confirmation tokens older than 7 days, which is what the
+# privacy policy promises. Without this block nothing ever invokes scheduled().
+[triggers]
+crons = ["23 4 * * *"]
