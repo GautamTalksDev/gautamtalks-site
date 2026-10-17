@@ -3,15 +3,23 @@ on:
   schedule:
     - cron: "17 5 * * *"   # daily
   workflow_dispatch: {}
-permissions:
-  contents: write
+# Nothing by default; the one job that pushes gets exactly contents: write.
+permissions: {}
+concurrency:
+  group: feed
+  cancel-in-progress: false
 jobs:
   feed:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write   # push data/feed.json
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+      # Pinned to full commit SHAs (a tag can be moved to malicious code; a SHA cannot).
+      # Dependabot (.github/dependabot.yml) proposes updates and keeps the comments.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: 24 }   # Node 20 reached end of life in April 2026
       - run: node scripts/fetch-feed.mjs
       - name: Commit if changed
         run: |
