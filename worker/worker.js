@@ -7,8 +7,11 @@
  *  - strict CORS allowlist (only your domains may call it)
  *  - Turnstile captcha verification (bot wall, privacy-friendly)
  *  - honeypot + submit-timing check (kills naive spam bots)
- *  - per-IP rate limiting via KV
- *  - email normalized + validated; stored with SHA-256 lookup hash
+ *  - per-IP rate limiting via KV (IPv6 limited per /64), plus a per-inbox mail cap
+ *  - email validated; mail goes to the address as typed, and an alias-folded form
+ *    is used only for the SHA-256 de-duplication hash
+ *  - same response for new, pending and confirmed addresses (no list lookups)
+ *  - Turnstile fails closed and must be solved on gautamtalks.com
  *  - double opt-in token (CASL/GDPR: express consent required in Canada)
  *  - no PII written to logs, ever
  */
@@ -17,6 +20,9 @@ const ALLOWED_ORIGINS = new Set([
   "https://gautamtalks.com",
   "https://www.gautamtalks.com",
 ]);
+// Turnstile reports where the challenge was solved. A token solved on any other
+// site (a farm, a clone of the page) is rejected.
+const ALLOWED_HOSTNAMES = new Set(["gautamtalks.com", "www.gautamtalks.com"]);
 
 const json = (data, status, origin) =>
   new Response(JSON.stringify(data), {
@@ -49,6 +55,15 @@ const validEmail = (e) =>
 // with plus-tags (you+1@), dots (y.o.u@gmail), or provider-equivalent domains.
 const GMAILISH = new Set(["gmail.com", "googlemail.com"]);
 const DOT_INSENSITIVE = new Set(["gmail.com", "googlemail.com"]);
+// The address exactly as typed, with only the domain lowercased. Mail goes HERE.
+// normalize() below is only an identity for de-duplication: stripping a plus-tag
+// is not safe for delivery, because on many servers "a+b@" and "a@" are different people.
+const typedAddress = (raw) => {
+  const e = String(raw || "").trim();
+  const at = e.lastIndexOf("@");
+  return at < 1 ? e : e.slice(0, at) + "@" + e.slice(at + 1).toLowerCase();
+};
+
 const normalize = (raw) => {
   let e = String(raw).trim().toLowerCase();
   const at = e.lastIndexOf("@");
@@ -69,18 +84,26 @@ const DISPOSABLE = new Set([
 ]);
 
 async function verifyTurnstile(token, ip, secret) {
-  if (!secret) return true; // captcha optional until you add the key
-  if (!token) return false;
+  // Fail closed. A missing secret used to switch the bot wall off silently.
+  if (!secret) {
+    console.log(JSON.stringify({ task: "subscribe", error: "turnstile_secret_missing" }));
+    return false;
+  }
+  if (typeof token !== "string" || !token || token.length > 2048) return false;
   const body = new FormData();
   body.append("secret", secret);
   body.append("response", token);
   if (ip) body.append("remoteip", ip);
-  const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body,
-  });
-  const out = await r.json();
-  return out.success === true;
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body,
+    });
+    const out = await r.json();
+    return out.success === true && ALLOWED_HOSTNAMES.has(out.hostname);
+  } catch {
+    return false;
+  }
 }
 
 // Two-tier limiter.
@@ -93,8 +116,39 @@ const RL = {
   signup: { max: 8, ttl: 21600, prefix: "s:" },
 };
 
+// Per-address cap: no inbox receives more than 3 confirmation emails per 6 hours,
+// however many networks the requests come from (stops using the form to mail-bomb
+// someone, which would also burn the sending domain's reputation).
+const MAIL_CAP = { max: 3, ttl: 21600, prefix: "m:" };
+
+// One IPv6 client usually controls a whole /64, so IPv6 is limited per /64.
+function ipBucket(ip) {
+  if (!ip.includes(":")) return ip;
+  const v4 = ip.match(/(\d{1,3}(?:\.\d{1,3}){3})$/); // IPv4-mapped, e.g. ::ffff:192.0.2.1
+  if (v4) return v4[1];
+  const [head, tail] = ip.toLowerCase().split("%")[0].split("::");
+  const h = head ? head.split(":") : [];
+  const t = tail ? tail.split(":") : [];
+  const groups = tail === undefined
+    ? h
+    : [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
+  return groups.slice(0, 4).map((g) => g.padStart(4, "0")).join(":") + "::/64";
+}
+
 async function ipKey(env, ip, prefix) {
-  return prefix + (await sha256(ip + (env.IP_SALT || "")));
+  return prefix + (await sha256(ipBucket(ip) + (env.IP_SALT || "")));
+}
+
+async function checkMailCap(env, emailHash) {
+  if (!env.RATE) return { ok: true };
+  const key = MAIL_CAP.prefix + emailHash;
+  const hits = parseInt((await env.RATE.get(key)) || "0", 10);
+  return hits >= MAIL_CAP.max ? { ok: false } : { ok: true, key, hits };
+}
+
+async function consumeMailCap(env, cap) {
+  if (!env.RATE || !cap || !cap.key) return;
+  await env.RATE.put(cap.key, String(cap.hits + 1), { expirationTtl: MAIL_CAP.ttl });
 }
 
 async function checkBurst(env, ip) {
@@ -241,30 +295,50 @@ export default {
       });
     }
 
-    // ---- double opt-in confirmation link (clicked from the email) ----
-    if (request.method === "GET" && url.pathname === "/confirm") {
+    // ---- double opt-in confirmation (link in the email) ----
+    // GET only shows a button; the POST that button sends is what confirms.
+    // Mail security scanners open every link in an email with GET, so a GET that
+    // confirmed would let a scanner "consent" for the recipient and void the
+    // proof of consent that double opt-in exists to create.
+    if (url.pathname === "/confirm" && (request.method === "GET" || request.method === "POST")) {
       const token = url.searchParams.get("t") || "";
       if (!/^[a-f0-9]{32,64}$/.test(token)) return new Response("Invalid link", { status: 400 });
       // token must exist, be unconfirmed, and be younger than 7 days
       const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-      const res = await env.DB.prepare(
-        "UPDATE subscribers SET confirmed = 1, confirmed_at = ?, token = NULL " +
-        "WHERE token = ? AND confirmed = 0 AND created_at >= ?"
-      ).bind(new Date().toISOString(), token, cutoff).run();
-      const ok = res.meta && res.meta.changes > 0;
+      let state;
+      if (request.method === "GET") {
+        const live = await env.DB.prepare(
+          "SELECT 1 AS live FROM subscribers WHERE token = ? AND confirmed = 0 AND created_at >= ?"
+        ).bind(token, cutoff).first();
+        state = live ? "ask" : "bad";
+      } else {
+        const res = await env.DB.prepare(
+          "UPDATE subscribers SET confirmed = 1, confirmed_at = ?, token = NULL " +
+          "WHERE token = ? AND confirmed = 0 AND created_at >= ?"
+        ).bind(new Date().toISOString(), token, cutoff).run();
+        state = res.meta && res.meta.changes > 0 ? "ok" : "bad";
+      }
+      const page = {
+        ask: { title: "Confirm your spot", h1: "One last click \u26A1", p: "Press the button and the Climb Log is yours.",
+               extra: `<form method="POST" action="/confirm?t=${token}"><button type="submit">CONFIRM MY SPOT \u26A1</button></form>` },
+        ok:  { title: "You're in", h1: "You're on the list \u26A1", p: "Field notes from the climb are on the way.", extra: "" },
+        bad: { title: "Link expired", h1: "That link is no longer valid", p: "Try signing up again.", extra: "" },
+      }[state];
       return new Response(
         `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
-         <title>${ok ? "You're in" : "Link expired"}</title>
+         <title>${page.title}</title>
          <style>body{background:#f7f4ec;color:#16151c;font-family:system-ui,sans-serif;display:grid;
          place-items:center;min-height:100vh;margin:0;text-align:center;padding:24px}
-         a{color:#2e3df0}h1{font-size:2rem;margin:0 0 12px}</style>
-         <div><h1>${ok ? "You're on the list \u26A1" : "That link is no longer valid"}</h1>
-         <p>${ok ? "Field notes from the climb are on the way." : "Try signing up again."}</p>
+         a{color:#2e3df0}h1{font-size:2rem;margin:0 0 12px}
+         button{background:#ffd23f;color:#16151c;border:0;border-radius:999px;padding:16px 34px;
+         font:700 15px system-ui,sans-serif;letter-spacing:.3px;cursor:pointer;margin:8px 0 4px}</style>
+         <div><h1>${page.h1}</h1>
+         <p>${page.p}</p>${page.extra}
          <p><a href="https://gautamtalks.com/">Back to gautamtalks.com</a></p></div>`,
-        { status: ok ? 200 : 410, headers: {
+        { status: state === "bad" ? 410 : 200, headers: {
            "content-type": "text/html; charset=utf-8",
            "cache-control": "no-store",
-           "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+           "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
            "x-content-type-options": "nosniff",
            "referrer-policy": "no-referrer",
            "strict-transport-security": "max-age=31536000; includeSubDomains",
@@ -274,13 +348,21 @@ export default {
     }
 
     // ---- unsubscribe (legally required, one click) ----
-    if (request.method === "GET" && url.pathname === "/unsubscribe") {
+    // GET is the link in every email. POST is RFC 8058 one-click: Gmail and Yahoo
+    // POST here when the List-Unsubscribe-Post header is present, which send.mjs
+    // sets on every issue. Before this, that POST hit the 404 below and the
+    // person stayed subscribed.
+    if (url.pathname === "/unsubscribe" && (request.method === "GET" || request.method === "POST")) {
       const token = url.searchParams.get("t") || "";
       if (!/^[a-f0-9]{32,64}$/.test(token)) return new Response("Invalid link", { status: 400 });
       await env.DB.prepare("DELETE FROM subscribers WHERE unsub_token = ?").bind(token).run();
+      if (request.method === "POST") {
+        return new Response("Unsubscribed", { status: 200, headers: {
+          "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
+      }
       return new Response(
         `<!doctype html><meta charset=utf-8><title>Unsubscribed</title>
-         <p style="font-family:system-ui">You're unsubscribed. No hard feelings \u2014 the videos are always free.</p>`,
+         <p style="font-family:system-ui">You're unsubscribed. No hard feelings. The videos are always free.</p>`,
         { status: 200, headers: {
            "content-type": "text/html; charset=utf-8",
            "cache-control": "no-store",
@@ -313,15 +395,18 @@ export default {
       return json({ error: "bad_json" }, 400, allowed);
     }
 
-    // honeypot: real humans never fill a hidden field
-    if (body.website) return json({ ok: true }, 200, allowed); // silent success for bots
-    // timing: a genuine human takes more than 2 seconds
-    if (typeof body.elapsed === "number" && body.elapsed < 2000) {
-      return json({ ok: true }, 200, allowed);
-    }
+    // One answer for new, pending, already-confirmed and silently dropped requests,
+    // so this endpoint cannot be used to test whether an address is on the list.
+    const accepted = () => json({ ok: true, pending: true }, 200, allowed);
 
-    const email = normalize(String(body.email || ""));
-    if (!validEmail(email)) return json({ error: "invalid_email" }, 400, allowed);
+    // honeypot: real humans never fill a hidden field
+    if (body.website) return accepted(); // silent success for bots
+    // timing: a genuine human takes more than 2 seconds
+    if (typeof body.elapsed === "number" && body.elapsed < 2000) return accepted();
+
+    const typed = typedAddress(body.email);   // where mail is sent
+    const email = normalize(typed);           // de-duplication identity only
+    if (!validEmail(typed) || !validEmail(email)) return json({ error: "invalid_email" }, 400, allowed);
     if (body.consent !== true) return json({ error: "consent_required" }, 400, allowed);
 
     const ip = request.headers.get("CF-Connecting-IP") || "";
@@ -354,42 +439,49 @@ export default {
 
     const emailHash = await sha256(email + (env.EMAIL_SALT || ""));
 
-    // Already on the list? Say so instead of silently re-sending.
-    const existing = await env.DB.prepare(
-      "SELECT confirmed, created_at FROM subscribers WHERE email_hash = ?"
-    ).bind(emailHash).first();
-
-    if (existing) {
-      if (existing.confirmed === 1) {
-        return json({ ok: true, already: true }, 200, allowed);
-      }
-      // Unconfirmed: allow a resend, but not more than once every 10 minutes.
-      const age = Date.now() - new Date(existing.created_at).getTime();
-      if (age < 10 * 60 * 1000) {
-        return json({ ok: true, pending: true, throttled: true }, 200, allowed);
-      }
-    }
-    const token = crypto.randomUUID().replace(/-/g, "");
-    const unsub = crypto.randomUUID().replace(/-/g, "");
-    const now = new Date().toISOString();
-
-    // only a genuinely NEW subscription consumes the signup quota
+    // Network quota is checked BEFORE the address is looked up, so a 429 reveals
+    // nothing about any address. Only a request that actually sends mail consumes it.
     const quota = await checkSignupQuota(env, ip);
     if (!quota.ok) {
       return json({ error: "rate_limited", retryAfter: quota.retryAfter,
                     message: "Signup limit reached for this network." }, 429, allowed);
     }
 
+    const existing = await env.DB.prepare(
+      "SELECT confirmed, created_at FROM subscribers WHERE email_hash = ?"
+    ).bind(emailHash).first();
+    // Already confirmed: nothing to send, same answer as everyone else.
+    if (existing && existing.confirmed === 1) return accepted();
+    // Pending: allow a resend, but not more than once every 10 minutes.
+    if (existing && Date.now() - new Date(existing.created_at).getTime() < 10 * 60 * 1000) return accepted();
+    // And never more than MAIL_CAP.max confirmation emails per inbox per window.
+    const mailCap = await checkMailCap(env, emailHash);
+    if (!mailCap.ok) return accepted();
+
+    const token = crypto.randomUUID().replace(/-/g, "");
+    const unsub = crypto.randomUUID().replace(/-/g, "");
+    const now = new Date().toISOString();
+
+    let stored;
     try {
-      await env.DB.prepare(
+      // New address: insert. Pending address: store the NEW token and restart its
+      // clock, so the link in the newest email is the one that works (previously
+      // only the profile was updated and every resent link was dead on arrival).
+      // A confirmed row is never touched (the WHERE on the upsert).
+      stored = await env.DB.prepare(
         `INSERT INTO subscribers (email, email_hash, profile, consent_at, token, unsub_token, confirmed, created_at)
          VALUES (?, ?, ?, ?, ?, ?, 0, ?)
-         ON CONFLICT(email_hash) DO UPDATE SET profile = excluded.profile`
-      ).bind(email, emailHash, JSON.stringify(profile), now, token, unsub, now).run();
+         ON CONFLICT(email_hash) DO UPDATE SET
+           email = excluded.email, profile = excluded.profile, consent_at = excluded.consent_at,
+           token = excluded.token, created_at = excluded.created_at
+         WHERE subscribers.confirmed = 0`
+      ).bind(typed, emailHash, JSON.stringify(profile), now, token, unsub, now).run();
     } catch (e) {
       return json({ error: "storage_failed" }, 500, allowed);
     }
+    if (!stored.meta || !(stored.meta.changes > 0)) return accepted(); // confirmed meanwhile
     await consumeSignupQuota(env, quota);
+    await consumeMailCap(env, mailCap);
 
     // send the confirmation email (double opt-in) via Resend
     if (env.RESEND_KEY) {
@@ -408,7 +500,7 @@ export default {
         headers: { authorization: `Bearer ${env.RESEND_KEY}`, "content-type": "application/json" },
         body: JSON.stringify({
           from: env.FROM_ADDRESS || "Gautam Talks <hello@gautamtalks.com>",
-          to: [email],
+          to: [typed],
           subject: "One click and you're on the Climb Log \u26A1",
           html,
           text
@@ -416,6 +508,6 @@ export default {
       }).catch(() => {});
     }
 
-    return json({ ok: true, pending: true }, 200, allowed);
+    return accepted();
   },
 };

@@ -239,9 +239,10 @@
       const out = await res.json().catch(() => ({}));
       if (res.ok && out.ok) {
         state.subscribed = true;
-        if (out.already) status("You're already on the list ⚡ Opening your Hub.", "ok");
-        else if (out.throttled) status("Already sent. Check your inbox, and your spam folder.", "ok");
-        else status("Check your inbox and confirm. One click and you're in ⚡", "ok");
+        // The worker answers new, pending and already-confirmed addresses identically
+        // on purpose (nobody can use the form to test who is on the list), so one
+        // message has to be true for all three.
+        status("Check your inbox (and spam) to confirm. Already on the list? You're all set ⚡", "ok");
         setTimeout(finish, 1400);
       } else {
         const msgs = { invalid_email: "That email doesn't look right.", rate_limited: "Too many tries. Give it an hour.",
