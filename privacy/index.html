@@ -27,7 +27,7 @@ a{color:var(--cobalt);font-weight:600}
 <nav class="topbar"><a class="logo" href="../" style="text-decoration:none">GAUTAM<span class="bolt">⚡</span>TALKS</a><a class="navlink" href="../">← HOME</a></nav>
 <main>
 <h1>Privacy</h1>
-<p class="upd">PLAIN LANGUAGE · SHORT ON PURPOSE · LAST UPDATED 2 AUGUST 2026</p>
+<p class="upd">PLAIN LANGUAGE · SHORT ON PURPOSE · LAST UPDATED 17 OCTOBER 2026</p>
 
 <p>This site is run by Gautam Khosla ("I", "me"). If you only watch the videos and read the pages, I collect nothing about you. The rest of this page explains the one case where I do.</p>
 
@@ -42,7 +42,7 @@ a{color:var(--cobalt);font-weight:600}
 <ul>
 <li>No advertising trackers, no analytics pixels, no third-party scripts that watch you.</li>
 <li>No name, age, location, phone number, or payment details.</li>
-<li>No raw IP addresses. Rate limiting uses a salted one-way hash of your IP, which cannot be reversed into an address.</li>
+<li>No raw IP addresses. Rate limiting uses a salted one-way hash of your IP address (for IPv6, of its /64 network), which cannot be reversed into an address.</li>
 <li>No profiles built from your browsing anywhere else.</li>
 </ul>
 
@@ -59,13 +59,13 @@ a{color:var(--cobalt);font-weight:600}
 <p>Neither is permitted to use your address for their own purposes. I do not sell, rent, trade, or share your email with anyone, ever. Fonts are served by Google Fonts.</p>
 
 <h2>Double opt-in, and why</h2>
-<p>After signing up you get exactly one confirmation email. If you never click the link, you are never emailed again and the unconfirmed record is deleted during routine cleanup. This protects you from someone else entering your address, and it satisfies Canada's Anti-Spam Legislation (CASL), which requires express consent.</p>
+<p>After signing up you get one confirmation email. Its link opens a page with a confirm button, and only pressing that button subscribes you. If you never confirm, you get no newsletter, and the unconfirmed record is deleted by the cleanup described below. Entering the same address again sends a fresh confirmation email, but never more than one every 10 minutes or 3 in 6 hours. This protects you from someone else entering your address, and it satisfies Canada's Anti-Spam Legislation (CASL), which requires express consent.</p>
 
 <h2>How long it is kept</h2>
 <ul>
 <li><strong>Confirmed subscribers</strong>: kept until you unsubscribe, then deleted immediately.</li>
-<li><strong>Unconfirmed signups</strong>: removed within 30 days.</li>
-<li><strong>Rate-limit hashes</strong>: automatically expire within 6 hours.</li>
+<li><strong>Unconfirmed signups</strong> (the confirm button was never pressed): a cleanup runs every hour and deletes each one once it is 29 days old, counted from the latest signup that triggered a confirmation email, so none is kept longer than 30 days. The confirmation link itself stops working after 7 days.</li>
+<li><strong>Rate-limit counters</strong> (salted one-way hashes of your network address and of your email address, each with a count): expire automatically at most 6 hours after the last signup attempt they counted.</li>
 </ul>
 
 <h2>Your rights</h2>

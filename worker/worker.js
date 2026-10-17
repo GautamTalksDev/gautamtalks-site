@@ -121,6 +121,10 @@ const RL = {
 // someone, which would also burn the sending domain's reputation).
 const MAIL_CAP = { max: 3, ttl: 21600, prefix: "m:" };
 
+// Retention for unconfirmed signups. The privacy page promises "never kept longer
+// than 30 days"; 29 days plus the hourly cron leaves a margin of almost a day.
+const UNCONFIRMED_PURGE_MS = 29 * 24 * 3600 * 1000;
+
 // One IPv6 client usually controls a whole /64, so IPv6 is limited per /64.
 function ipBucket(ip) {
   if (!ip.includes(":")) return ip;
@@ -249,18 +253,23 @@ function confirmEmailHTML(link) {
 }
 
 export default {
-  /* Scheduled cleanup. Runs daily via the cron trigger in wrangler.toml.
-     Enforces exactly what the privacy policy promises:
-       - unconfirmed signups deleted after 30 days
-       - confirmation tokens expire after 7 days (link stops working)
+  /* Scheduled cleanup. Runs every hour via the cron trigger in wrangler.toml.
+     Enforces what the privacy policy promises ("never kept longer than 30 days"):
+       - an unconfirmed signup is deleted once it is 29 days old (created_at is the
+         time of the latest signup that triggered a confirmation email). With an
+         hourly run the worst case is 29 days + 1 hour, so the promise still holds
+         even if many runs in a row fail. (A daily run with a 30-day threshold kept
+         rows for up to 31 days.)
+       - confirmation tokens older than 7 days are cleared (the link already stops
+         working at 7 days, because /confirm checks created_at itself)
      No endpoint, no auth surface: Cloudflare invokes this internally. */
   async scheduled(event, env, ctx) {
     const now = Date.now();
     const iso = (ms) => new Date(now - ms).toISOString();
     try {
       const purged = await env.DB.prepare(
-        "DELETE FROM subscribers WHERE confirmed = 0 AND created_at < ?"
-      ).bind(iso(30 * 24 * 3600 * 1000)).run();
+        "DELETE FROM subscribers WHERE confirmed = 0 AND created_at <= ?"
+      ).bind(iso(UNCONFIRMED_PURGE_MS)).run();
 
       const expired = await env.DB.prepare(
         "UPDATE subscribers SET token = NULL WHERE confirmed = 0 AND token IS NOT NULL AND created_at < ?"

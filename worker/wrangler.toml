@@ -15,8 +15,10 @@ database_id = "e477f0c4-cb7e-4503-b7b5-cfa129608d6d"
 binding = "RATE"
 id = "6eddba5f539640d8a8093c49ce2bc51c"
 
-# Daily run of scheduled() in worker.js: deletes unconfirmed signups older than
-# 30 days and expires confirmation tokens older than 7 days, which is what the
-# privacy policy promises. Without this block nothing ever invokes scheduled().
+# Hourly run of scheduled() in worker.js (minute 23 of every hour, UTC): deletes
+# unconfirmed signups once they are 29 days old and expires confirmation tokens
+# older than 7 days. Hourly + 29 days keeps every unconfirmed row under the 30 days
+# the privacy policy promises (worst case 29 days + 1 hour). Without this block
+# nothing ever invokes scheduled().
 [triggers]
-crons = ["23 4 * * *"]
+crons = ["23 * * * *"]
