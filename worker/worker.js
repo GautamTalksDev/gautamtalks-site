@@ -462,6 +462,11 @@ export default {
     const unsub = crypto.randomUUID().replace(/-/g, "");
     const now = new Date().toISOString();
 
+    // The 10-minute resend window is enforced again INSIDE the write, so it is atomic:
+    // D1 serialises writes, so when many requests for one address arrive at once
+    // (from many networks), exactly one wins the row per window and only the winner
+    // sends mail and counts against the caps. The checks above are just a fast path.
+    const resendCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     let stored;
     try {
       // New address: insert. Pending address: store the NEW token and restart its
@@ -474,12 +479,14 @@ export default {
          ON CONFLICT(email_hash) DO UPDATE SET
            email = excluded.email, profile = excluded.profile, consent_at = excluded.consent_at,
            token = excluded.token, created_at = excluded.created_at
-         WHERE subscribers.confirmed = 0`
-      ).bind(typed, emailHash, JSON.stringify(profile), now, token, unsub, now).run();
+         WHERE subscribers.confirmed = 0 AND subscribers.created_at <= ?`
+      ).bind(typed, emailHash, JSON.stringify(profile), now, token, unsub, now, resendCutoff).run();
     } catch (e) {
       return json({ error: "storage_failed" }, 500, allowed);
     }
-    if (!stored.meta || !(stored.meta.changes > 0)) return accepted(); // confirmed meanwhile
+    // Nothing written: confirmed meanwhile, or a concurrent request already sent
+    // this window's email. Same answer, no mail, no quota used.
+    if (!stored.meta || !(stored.meta.changes > 0)) return accepted();
     await consumeSignupQuota(env, quota);
     await consumeMailCap(env, mailCap);
 

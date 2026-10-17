@@ -38,7 +38,7 @@ Copy the `id` into `wrangler.toml`.
 wrangler secret put EMAIL_SALT      # any long random string, e.g. openssl rand -hex 32
 wrangler secret put IP_SALT         # another random string
 wrangler secret put RESEND_KEY      # from resend.com, for confirmation emails
-wrangler secret put TURNSTILE_SECRET # from Cloudflare Turnstile (optional but recommended)
+wrangler secret put TURNSTILE_SECRET # from Cloudflare Turnstile. REQUIRED: without it every signup is refused
 ```
 
 ## 6. Deploy
