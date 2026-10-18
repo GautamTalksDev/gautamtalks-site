@@ -3,7 +3,9 @@
  * ======================
  * Reads a markdown issue, renders it into the Gautam Talks house style,
  * pulls confirmed subscribers from your D1 database, and sends via Resend.
- * Every email carries that subscriber's own one click unsubscribe link.
+ * Every email carries that subscriber's own unsubscribe link (it opens a page with
+ * one button, so link scanners cannot unsubscribe anyone) plus the RFC 8058
+ * List-Unsubscribe headers, which give Gmail and Yahoo a one-click button.
  *
  *   node newsletter/send.mjs --test          send only to yourself
  *   node newsletter/send.mjs --dry           write a preview.html, send nothing
@@ -359,8 +361,8 @@ function shell(contentHTML, unsubUrl, issueNo) {
         <a href="${SITE}" style="color:${COBALT};text-decoration:none;">gautamtalks.com</a></div>
       <div style="padding-top:16px;font:400 11px/1.7 Arial,Helvetica,sans-serif;color:#a3a2a9;">
         You're getting this because you confirmed your spot on the Climb Log.
-        <a href="${unsubUrl}" style="color:#a3a2a9;text-decoration:underline;">Unsubscribe in one click</a>
-        and your record is deleted, not just flagged.</div>
+        <a href="${unsubUrl}" style="color:#a3a2a9;text-decoration:underline;">Unsubscribe</a>
+        any time and your record is deleted, not just flagged.</div>
     </td></tr></table>
   </td></tr>
 

@@ -27,13 +27,33 @@ function Query([string]$sql) {
   return ($raw | ConvertFrom-Json)[0].results
 }
 
+# Same alias folding as normalize() in worker.js. Keep the two in sync.
+function Normalize([string]$raw) {
+  $e = $raw.Trim().ToLower()
+  $at = $e.LastIndexOf("@")
+  if ($at -lt 1) { return $e }
+  $local = $e.Substring(0, $at); $domain = $e.Substring($at + 1)
+  if ($domain -eq "googlemail.com") { $domain = "gmail.com" }
+  $local = $local.Split([char]'+')[0]
+  if ($domain -eq "gmail.com") { $local = $local.Replace(".", "") }
+  return "$local@$domain"
+}
+
 if ($Remove) {
-  # Honours a deletion request. Normalizes the address the same way the worker does.
-  $addr = $Remove.Trim().ToLower()
-  Write-Host "`nDeleting all records matching: $addr" -ForegroundColor Yellow
+  # Honours a deletion request. Stored addresses may be written in any alias form
+  # (J.Doe+news@gmail.com), so match on the folded identity, not the raw string:
+  # fetch the rows for that domain, fold each address, delete the matching ids.
+  $target = Normalize $Remove
+  $domain = $target.Substring($target.LastIndexOf("@") + 1)
+  $domains = if ($domain -eq "gmail.com") { @("gmail.com", "googlemail.com") } else { @($domain) }
+  $where = ($domains | ForEach-Object { "lower(email) LIKE '%@$($_ -replace "'","''")'" }) -join " OR "
+  $rows = Query "SELECT id, email FROM subscribers WHERE $where"
+  $ids = @($rows | Where-Object { (Normalize $_.email) -eq $target } | ForEach-Object { [int]$_.id })
+  if ($ids.Count -eq 0) { Write-Host "`nNo record matches $target." -ForegroundColor Yellow; exit }
+  Write-Host "`nDeleting $($ids.Count) record(s) matching: $target" -ForegroundColor Yellow
   $confirm = Read-Host "Type DELETE to confirm"
   if ($confirm -ne "DELETE") { Write-Host "Cancelled."; exit }
-  Query "DELETE FROM subscribers WHERE email = '$($addr -replace "'","''")'" | Out-Null
+  Query "DELETE FROM subscribers WHERE id IN ($($ids -join ','))" | Out-Null
   Write-Host "Done. Record removed." -ForegroundColor Green
   exit
 }

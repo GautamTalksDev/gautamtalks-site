@@ -7,9 +7,18 @@
  *  - strict CORS allowlist (only your domains may call it)
  *  - Turnstile captcha verification (bot wall, privacy-friendly)
  *  - honeypot + submit-timing check (kills naive spam bots)
- *  - per-IP rate limiting via KV
- *  - email normalized + validated; stored with SHA-256 lookup hash
+ *  - per-IP rate limiting via KV (IPv6 limited per /64), plus a per-inbox mail cap
+ *  - email validated; mail goes to the address as typed, and an alias-folded form
+ *    is used only for the SHA-256 de-duplication hash
+ *  - same response, same timing and same quota use for new, pending, confirmed
+ *    and capped addresses: the address-dependent work runs after the answer
+ *    (ctx.waitUntil), so the form cannot be used to test who is on the list
+ *  - Turnstile fails closed, must be solved on gautamtalks.com, by the signup
+ *    widget (action "subscribe")
  *  - double opt-in token (CASL/GDPR: express consent required in Canada)
+ *  - link scanners cannot act for people: GET /confirm and GET /unsubscribe only
+ *    show a button, and only that button's POST (or an RFC 8058 one-click POST)
+ *    changes anything
  *  - no PII written to logs, ever
  */
 
@@ -17,6 +26,13 @@ const ALLOWED_ORIGINS = new Set([
   "https://gautamtalks.com",
   "https://www.gautamtalks.com",
 ]);
+// Turnstile reports where the challenge was solved. A token solved on any other
+// site (a farm, a clone of the page) is rejected.
+const ALLOWED_HOSTNAMES = new Set(["gautamtalks.com", "www.gautamtalks.com"]);
+// The signup widget is rendered with this action (data-action on #turnstileBox in
+// hub/index.html, passed by hub/hub.js), and siteverify reports it back. A token
+// minted by any other widget or action under the same site key is rejected.
+const TURNSTILE_ACTION = "subscribe";
 
 const json = (data, status, origin) =>
   new Response(JSON.stringify(data), {
@@ -49,6 +65,15 @@ const validEmail = (e) =>
 // with plus-tags (you+1@), dots (y.o.u@gmail), or provider-equivalent domains.
 const GMAILISH = new Set(["gmail.com", "googlemail.com"]);
 const DOT_INSENSITIVE = new Set(["gmail.com", "googlemail.com"]);
+// The address exactly as typed, with only the domain lowercased. Mail goes HERE.
+// normalize() below is only an identity for de-duplication: stripping a plus-tag
+// is not safe for delivery, because on many servers "a+b@" and "a@" are different people.
+const typedAddress = (raw) => {
+  const e = String(raw || "").trim();
+  const at = e.lastIndexOf("@");
+  return at < 1 ? e : e.slice(0, at) + "@" + e.slice(at + 1).toLowerCase();
+};
+
 const normalize = (raw) => {
   let e = String(raw).trim().toLowerCase();
   const at = e.lastIndexOf("@");
@@ -69,32 +94,88 @@ const DISPOSABLE = new Set([
 ]);
 
 async function verifyTurnstile(token, ip, secret) {
-  if (!secret) return true; // captcha optional until you add the key
-  if (!token) return false;
+  // Fail closed. A missing secret used to switch the bot wall off silently.
+  if (!secret) {
+    console.log(JSON.stringify({ task: "subscribe", error: "turnstile_secret_missing" }));
+    return false;
+  }
+  if (typeof token !== "string" || !token || token.length > 2048) return false;
   const body = new FormData();
   body.append("secret", secret);
   body.append("response", token);
   if (ip) body.append("remoteip", ip);
-  const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body,
-  });
-  const out = await r.json();
-  return out.success === true;
+  try {
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body,
+    });
+    if (!r.ok) return false;
+    const out = await r.json();
+    return out !== null && typeof out === "object" &&
+      out.success === true &&
+      ALLOWED_HOSTNAMES.has(out.hostname) &&
+      out.action === TURNSTILE_ACTION;
+  } catch {
+    return false;
+  }
 }
 
 // Two-tier limiter.
 //  - burst:  6 requests / 5 min   (stops rapid hammering)
-//  - signup: 8 NEW subscriptions / 6 h (stops list stuffing)
-// Failed validation, duplicates and already-subscribed do NOT consume signup
-// quota, so honest people retrying a typo are never punished.
+//  - signup: 8 accepted signup requests / 6 h per network (stops list stuffing)
+// Failed validation does NOT consume signup quota, so honest people retrying a
+// typo are never punished. Every request that passes validation and Turnstile
+// DOES, whatever state its address is in: if only real sends counted, "use 7,
+// submit a target, submit one more" would reveal whether the target is on the list.
 const RL = {
   burst:  { max: 6, ttl: 300,   prefix: "b:" },
   signup: { max: 8, ttl: 21600, prefix: "s:" },
 };
 
+// Per-address cap: no inbox receives more than 3 confirmation emails per 6 hours,
+// however many networks the requests come from (stops using the form to mail-bomb
+// someone, which would also burn the sending domain's reputation).
+const MAIL_CAP = { max: 3, ttl: 21600, prefix: "m:" };
+
+// Pause between sending the /subscribe answer and starting the address-dependent
+// work (see processSignup): 100 ms so the answer has been delivered, plus a random
+// 0 to 500 ms so nobody can line a request of their own up with that work and feel
+// it through shared resources. The confirmation email leaves at most 0.6 s later.
+const ANSWER_FIRST_MS = 100;
+const ANSWER_JITTER_MS = 500;
+
+// Retention for unconfirmed signups. The privacy page promises "never kept longer
+// than 30 days"; 29 days plus the hourly cron leaves a margin of almost a day.
+const UNCONFIRMED_PURGE_MS = 29 * 24 * 3600 * 1000;
+
+// One IPv6 client usually controls a whole /64, so IPv6 is limited per /64.
+function ipBucket(ip) {
+  if (!ip.includes(":")) return ip;
+  const v4 = ip.match(/(\d{1,3}(?:\.\d{1,3}){3})$/); // IPv4-mapped, e.g. ::ffff:192.0.2.1
+  if (v4) return v4[1];
+  const [head, tail] = ip.toLowerCase().split("%")[0].split("::");
+  const h = head ? head.split(":") : [];
+  const t = tail ? tail.split(":") : [];
+  const groups = tail === undefined
+    ? h
+    : [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
+  return groups.slice(0, 4).map((g) => g.padStart(4, "0")).join(":") + "::/64";
+}
+
 async function ipKey(env, ip, prefix) {
-  return prefix + (await sha256(ip + (env.IP_SALT || "")));
+  return prefix + (await sha256(ipBucket(ip) + (env.IP_SALT || "")));
+}
+
+async function checkMailCap(env, emailHash) {
+  if (!env.RATE) return { ok: true };
+  const key = MAIL_CAP.prefix + emailHash;
+  const hits = parseInt((await env.RATE.get(key)) || "0", 10);
+  return hits >= MAIL_CAP.max ? { ok: false } : { ok: true, key, hits };
+}
+
+async function consumeMailCap(env, cap) {
+  if (!env.RATE || !cap || !cap.key) return;
+  await env.RATE.put(cap.key, String(cap.hits + 1), { expirationTtl: MAIL_CAP.ttl });
 }
 
 async function checkBurst(env, ip) {
@@ -119,6 +200,130 @@ async function consumeSignupQuota(env, quota) {
   await env.RATE.put(quota.key, String(quota.hits + 1), { expirationTtl: RL.signup.ttl });
 }
 
+// Everything that depends on WHICH address was submitted: the row write, the inbox
+// cap and the confirmation email. fetch() runs this only after the answer has been
+// sent (ctx.waitUntil), so the answer is the same work, the same bytes and the same
+// time for a new, pending, confirmed or capped address, and cannot reveal which.
+async function processSignup(env, typed, emailHash, profile) {
+  // Inbox cap first: once it is reached nothing is written, so the link in the
+  // newest email that did go out keeps working.
+  const mailCap = await checkMailCap(env, emailHash);
+  if (!mailCap.ok) return;
+
+  const token = crypto.randomUUID().replace(/-/g, "");
+  const unsub = crypto.randomUUID().replace(/-/g, "");
+  const now = new Date().toISOString();
+
+  // The 10-minute resend window is enforced INSIDE the write, so it is atomic:
+  // D1 serialises writes, so when many requests for one address arrive at once
+  // (from many networks), exactly one wins the row per window and only the winner
+  // sends mail and counts against the inbox cap.
+  const resendCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  let stored;
+  try {
+    // New address: insert. Pending address: store the NEW token and restart its
+    // clock, so the link in the newest email is the one that works.
+    // A confirmed row is never touched (the WHERE on the upsert).
+    stored = await env.DB.prepare(
+      `INSERT INTO subscribers (email, email_hash, profile, consent_at, token, unsub_token, confirmed, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+       ON CONFLICT(email_hash) DO UPDATE SET
+         email = excluded.email, profile = excluded.profile, consent_at = excluded.consent_at,
+         token = excluded.token, created_at = excluded.created_at
+       WHERE subscribers.confirmed = 0 AND subscribers.created_at <= ?`
+    ).bind(typed, emailHash, JSON.stringify(profile), now, token, unsub, now, resendCutoff).run();
+  } catch {
+    console.log(JSON.stringify({ task: "subscribe", error: "storage_failed" }));
+    return;
+  }
+  // Nothing written: already confirmed, or this window's email already went out
+  // (maybe from a concurrent request). No mail, no inbox cap used.
+  if (!stored.meta || !(stored.meta.changes > 0)) return;
+  await consumeMailCap(env, mailCap);
+  if (!env.RESEND_KEY) return;
+
+  // the confirmation email (double opt-in) via Resend
+  const link = `${env.WORKER_URL}/confirm?t=${token}`;
+  const html = confirmEmailHTML(link);
+  const text =
+    "ASCEND HIGHER\n\n" +
+    "You're one click from the Climb Log.\n\n" +
+    "Confirm here: " + link + "\n\n" +
+    "What lands in your inbox: what I built and what broke, the links worth keeping, " +
+    "and first word when the Basecamp opens. Occasional. Never spam.\n\n" +
+    "If you didn't request this, ignore this email and nothing happens.\n\n" +
+    "Gautam Talks\ngautamtalks.com";
+  try {
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { authorization: `Bearer ${env.RESEND_KEY}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        from: env.FROM_ADDRESS || "Gautam Talks <hello@gautamtalks.com>",
+        to: [typed],
+        subject: "One click and you're on the Climb Log \u26A1",
+        html,
+        text
+      }),
+    });
+    // status code only, never the address
+    if (!r.ok) console.log(JSON.stringify({ task: "subscribe", error: "mail_failed", status: r.status }));
+  } catch {
+    console.log(JSON.stringify({ task: "subscribe", error: "mail_failed" }));
+  }
+}
+
+
+/* ── Small HTML pages (confirm, unsubscribe) ─────────────────────────────
+   No script at all. The only value from the request is the link token, which
+   is checked against /^[a-f0-9]{32,64}$/ before any page is built and is
+   HTML-escaped anyway. The single <style> block is allowed by its SHA-256
+   hash, so the CSP needs no 'unsafe-inline'; form-action 'self' means the
+   button can only POST back to this worker; frame-ancestors 'none' and
+   X-Frame-Options stop anyone framing the page to trick a click. */
+const PAGE_CSS =
+  "body{background:#f7f4ec;color:#16151c;font-family:system-ui,sans-serif;display:grid;" +
+  "place-items:center;min-height:100vh;margin:0;text-align:center;padding:24px}" +
+  "a{color:#2e3df0}h1{font-size:2rem;margin:0 0 12px}" +
+  "button{background:#ffd23f;color:#16151c;border:0;border-radius:999px;padding:16px 34px;" +
+  "font:700 15px system-ui,sans-serif;letter-spacing:.3px;cursor:pointer;margin:8px 0 4px}";
+let pageCssSource = null; // "'sha256-...'" for PAGE_CSS, computed once per isolate
+async function cssHash() {
+  if (!pageCssSource) {
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(PAGE_CSS));
+    pageCssSource = "'sha256-" + btoa(String.fromCharCode(...new Uint8Array(d))) + "'";
+  }
+  return pageCssSource;
+}
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+// A one-button form that POSTs back to the same path with the same one-time link
+// token. The token in the URL is the CSRF protection: without the secret 122-bit
+// token a cross-site form cannot name anyone, and once used it no longer exists.
+// `via` adds a marker to the query string (never to the body: no body is read).
+const postButton = (path, token, label, via = "") =>
+  `<form method="POST" action="${path}?t=${esc(token)}${via ? "&amp;via=" + esc(via) : ""}">` +
+  `<button type="submit">${esc(label)}</button></form>`;
+
+async function htmlPage(status, { title, h1, p, form = "" }) {
+  return new Response(
+    `<!doctype html><html lang="en"><meta charset="utf-8">` +
+    `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<meta name="robots" content="noindex,nofollow">` +
+    `<title>${esc(title)}</title><style>${PAGE_CSS}</style>` +
+    `<div><h1>${esc(h1)}</h1><p>${esc(p)}</p>${form}` +
+    `<p><a href="https://gautamtalks.com/">Back to gautamtalks.com</a></p></div>`,
+    { status, headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "content-security-policy": `default-src 'none'; style-src ${await cssHash()}; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`,
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "x-robots-tag": "noindex, nofollow",
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+      "permissions-policy": "geolocation=(), microphone=(), camera=(), interest-cohort=()",
+    } }
+  );
+}
 
 /* ── Branded confirmation email ──────────────────────────────────────────
    Table-based layout with inline styles: the only thing that renders
@@ -176,7 +381,7 @@ function confirmEmailHTML(link) {
         <tr><td style="padding:7px 0;">&#127957;&nbsp; First word when the Basecamp opens</td></tr>
       </table>
       <p style="margin:14px 0 0;font:400 11px/1.6 Arial,Helvetica,sans-serif;color:${MUTE};letter-spacing:1px;">
-        OCCASIONAL &middot; NEVER SPAM &middot; ONE-CLICK OUT
+        OCCASIONAL &middot; NEVER SPAM &middot; EASY OUT
       </p>
     </td></tr>
 
@@ -195,18 +400,23 @@ function confirmEmailHTML(link) {
 }
 
 export default {
-  /* Scheduled cleanup. Runs daily via the cron trigger in wrangler.toml.
-     Enforces exactly what the privacy policy promises:
-       - unconfirmed signups deleted after 30 days
-       - confirmation tokens expire after 7 days (link stops working)
+  /* Scheduled cleanup. Runs every hour via the cron trigger in wrangler.toml.
+     Enforces what the privacy policy promises ("never kept longer than 30 days"):
+       - an unconfirmed signup is deleted once it is 29 days old (created_at is the
+         time of the latest signup that triggered a confirmation email). With an
+         hourly run the worst case is 29 days + 1 hour, so the promise still holds
+         even if many runs in a row fail. (A daily run with a 30-day threshold kept
+         rows for up to 31 days.)
+       - confirmation tokens older than 7 days are cleared (the link already stops
+         working at 7 days, because /confirm checks created_at itself)
      No endpoint, no auth surface: Cloudflare invokes this internally. */
   async scheduled(event, env, ctx) {
     const now = Date.now();
     const iso = (ms) => new Date(now - ms).toISOString();
     try {
       const purged = await env.DB.prepare(
-        "DELETE FROM subscribers WHERE confirmed = 0 AND created_at < ?"
-      ).bind(iso(30 * 24 * 3600 * 1000)).run();
+        "DELETE FROM subscribers WHERE confirmed = 0 AND created_at <= ?"
+      ).bind(iso(UNCONFIRMED_PURGE_MS)).run();
 
       const expired = await env.DB.prepare(
         "UPDATE subscribers SET token = NULL WHERE confirmed = 0 AND token IS NOT NULL AND created_at < ?"
@@ -223,7 +433,7 @@ export default {
     }
   },
 
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get("Origin") || "";
     const allowed = ALLOWED_ORIGINS.has(origin) ? origin : "";
     const url = new URL(request.url);
@@ -241,55 +451,66 @@ export default {
       });
     }
 
-    // ---- double opt-in confirmation link (clicked from the email) ----
-    if (request.method === "GET" && url.pathname === "/confirm") {
+    // ---- double opt-in confirmation (link in the email) ----
+    // GET only shows a button; the POST that button sends is what confirms.
+    // Mail security scanners open every link in an email with GET, so a GET that
+    // confirmed would let a scanner "consent" for the recipient and void the
+    // proof of consent that double opt-in exists to create.
+    if (url.pathname === "/confirm" && (request.method === "GET" || request.method === "POST")) {
       const token = url.searchParams.get("t") || "";
       if (!/^[a-f0-9]{32,64}$/.test(token)) return new Response("Invalid link", { status: 400 });
       // token must exist, be unconfirmed, and be younger than 7 days
       const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-      const res = await env.DB.prepare(
-        "UPDATE subscribers SET confirmed = 1, confirmed_at = ?, token = NULL " +
-        "WHERE token = ? AND confirmed = 0 AND created_at >= ?"
-      ).bind(new Date().toISOString(), token, cutoff).run();
-      const ok = res.meta && res.meta.changes > 0;
-      return new Response(
-        `<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
-         <title>${ok ? "You're in" : "Link expired"}</title>
-         <style>body{background:#f7f4ec;color:#16151c;font-family:system-ui,sans-serif;display:grid;
-         place-items:center;min-height:100vh;margin:0;text-align:center;padding:24px}
-         a{color:#2e3df0}h1{font-size:2rem;margin:0 0 12px}</style>
-         <div><h1>${ok ? "You're on the list \u26A1" : "That link is no longer valid"}</h1>
-         <p>${ok ? "Field notes from the climb are on the way." : "Try signing up again."}</p>
-         <p><a href="https://gautamtalks.com/">Back to gautamtalks.com</a></p></div>`,
-        { status: ok ? 200 : 410, headers: {
-           "content-type": "text/html; charset=utf-8",
-           "cache-control": "no-store",
-           "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-           "x-content-type-options": "nosniff",
-           "referrer-policy": "no-referrer",
-           "strict-transport-security": "max-age=31536000; includeSubDomains",
-           "permissions-policy": "geolocation=(), microphone=(), camera=(), interest-cohort=()"
-         } }
-      );
+      let state;
+      if (request.method === "GET") {
+        const live = await env.DB.prepare(
+          "SELECT 1 AS live FROM subscribers WHERE token = ? AND confirmed = 0 AND created_at >= ?"
+        ).bind(token, cutoff).first();
+        state = live ? "ask" : "bad";
+      } else {
+        const res = await env.DB.prepare(
+          "UPDATE subscribers SET confirmed = 1, confirmed_at = ?, token = NULL " +
+          "WHERE token = ? AND confirmed = 0 AND created_at >= ?"
+        ).bind(new Date().toISOString(), token, cutoff).run();
+        state = res.meta && res.meta.changes > 0 ? "ok" : "bad";
+      }
+      const page = {
+        ask: { title: "Confirm your spot", h1: "One last click \u26A1", p: "Press the button and the Climb Log is yours.",
+               form: postButton("/confirm", token, "CONFIRM MY SPOT \u26A1") },
+        ok:  { title: "You're in", h1: "You're on the list \u26A1", p: "Field notes from the climb are on the way." },
+        bad: { title: "Link expired", h1: "That link is no longer valid", p: "Try signing up again." },
+      }[state];
+      return htmlPage(state === "bad" ? 410 : 200, page);
     }
 
-    // ---- unsubscribe (legally required, one click) ----
-    if (request.method === "GET" && url.pathname === "/unsubscribe") {
+    // ---- unsubscribe (legally required) ----
+    // GET is the link in every newsletter. Link scanners (corporate "safe links"
+    // gateways, antivirus) open every link in an email with GET, so a GET that
+    // deleted would silently unsubscribe people. GET therefore only shows a page
+    // with one button; the button POSTs back here with the same link token.
+    // POST is also RFC 8058 one-click: Gmail and Yahoo POST
+    // "List-Unsubscribe=One-Click" here when the List-Unsubscribe-Post header is
+    // present, which send.mjs sets on every issue. Every POST with a well-formed
+    // token deletes, exactly as before, and no POST body is ever read; only the
+    // reply differs: our own button (its action carries &via=page) gets an HTML
+    // page, anything else the plain "Unsubscribed" mail providers expect.
+    // Unknown and already-used tokens get the same answers (no oracle).
+    if (url.pathname === "/unsubscribe" && (request.method === "GET" || request.method === "POST")) {
       const token = url.searchParams.get("t") || "";
       if (!/^[a-f0-9]{32,64}$/.test(token)) return new Response("Invalid link", { status: 400 });
+      if (request.method === "GET") {
+        // no database access: the same page for every well-formed token
+        return htmlPage(200, { title: "Unsubscribe", h1: "Leaving the Climb Log?",
+          p: "Press the button and your email is deleted from the list, not just flagged.",
+          form: postButton("/unsubscribe", token, "UNSUBSCRIBE", "page") });
+      }
       await env.DB.prepare("DELETE FROM subscribers WHERE unsub_token = ?").bind(token).run();
-      return new Response(
-        `<!doctype html><meta charset=utf-8><title>Unsubscribed</title>
-         <p style="font-family:system-ui">You're unsubscribed. No hard feelings \u2014 the videos are always free.</p>`,
-        { status: 200, headers: {
-           "content-type": "text/html; charset=utf-8",
-           "cache-control": "no-store",
-           "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'",
-           "x-content-type-options": "nosniff",
-           "referrer-policy": "no-referrer",
-           "strict-transport-security": "max-age=31536000; includeSubDomains"
-         } }
-      );
+      if (url.searchParams.get("via") === "page") {
+        return htmlPage(200, { title: "Unsubscribed", h1: "You're unsubscribed",
+          p: "No hard feelings. The videos are always free." });
+      }
+      return new Response("Unsubscribed", { status: 200, headers: {
+        "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
     }
 
     if (request.method !== "POST" || url.pathname !== "/subscribe") {
@@ -313,15 +534,18 @@ export default {
       return json({ error: "bad_json" }, 400, allowed);
     }
 
-    // honeypot: real humans never fill a hidden field
-    if (body.website) return json({ ok: true }, 200, allowed); // silent success for bots
-    // timing: a genuine human takes more than 2 seconds
-    if (typeof body.elapsed === "number" && body.elapsed < 2000) {
-      return json({ ok: true }, 200, allowed);
-    }
+    // One answer for new, pending, already-confirmed and silently dropped requests,
+    // so this endpoint cannot be used to test whether an address is on the list.
+    const accepted = () => json({ ok: true, pending: true }, 200, allowed);
 
-    const email = normalize(String(body.email || ""));
-    if (!validEmail(email)) return json({ error: "invalid_email" }, 400, allowed);
+    // honeypot: real humans never fill a hidden field
+    if (body.website) return accepted(); // silent success for bots
+    // timing: a genuine human takes more than 2 seconds
+    if (typeof body.elapsed === "number" && body.elapsed < 2000) return accepted();
+
+    const typed = typedAddress(body.email);   // where mail is sent
+    const email = normalize(typed);           // de-duplication identity only
+    if (!validEmail(typed) || !validEmail(email)) return json({ error: "invalid_email" }, 400, allowed);
     if (body.consent !== true) return json({ error: "consent_required" }, 400, allowed);
 
     const ip = request.headers.get("CF-Connecting-IP") || "";
@@ -354,68 +578,32 @@ export default {
 
     const emailHash = await sha256(email + (env.EMAIL_SALT || ""));
 
-    // Already on the list? Say so instead of silently re-sending.
-    const existing = await env.DB.prepare(
-      "SELECT confirmed, created_at FROM subscribers WHERE email_hash = ?"
-    ).bind(emailHash).first();
-
-    if (existing) {
-      if (existing.confirmed === 1) {
-        return json({ ok: true, already: true }, 200, allowed);
-      }
-      // Unconfirmed: allow a resend, but not more than once every 10 minutes.
-      const age = Date.now() - new Date(existing.created_at).getTime();
-      if (age < 10 * 60 * 1000) {
-        return json({ ok: true, pending: true, throttled: true }, 200, allowed);
-      }
-    }
-    const token = crypto.randomUUID().replace(/-/g, "");
-    const unsub = crypto.randomUUID().replace(/-/g, "");
-    const now = new Date().toISOString();
-
-    // only a genuinely NEW subscription consumes the signup quota
+    // Network quota: decided before anything about the address is looked at, so a
+    // 429 reveals nothing, and consumed by EVERY request that gets this far, so the
+    // next request's answer reveals nothing either (see RL above).
     const quota = await checkSignupQuota(env, ip);
     if (!quota.ok) {
       return json({ error: "rate_limited", retryAfter: quota.retryAfter,
                     message: "Signup limit reached for this network." }, 429, allowed);
     }
-
-    try {
-      await env.DB.prepare(
-        `INSERT INTO subscribers (email, email_hash, profile, consent_at, token, unsub_token, confirmed, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?)
-         ON CONFLICT(email_hash) DO UPDATE SET profile = excluded.profile`
-      ).bind(email, emailHash, JSON.stringify(profile), now, token, unsub, now).run();
-    } catch (e) {
-      return json({ error: "storage_failed" }, 500, allowed);
-    }
     await consumeSignupQuota(env, quota);
 
-    // send the confirmation email (double opt-in) via Resend
-    if (env.RESEND_KEY) {
-      const link = `${env.WORKER_URL}/confirm?t=${token}`;
-      const html = confirmEmailHTML(link);
-      const text =
-        "ASCEND HIGHER\n\n" +
-        "You're one click from the Climb Log.\n\n" +
-        "Confirm here: " + link + "\n\n" +
-        "What lands in your inbox: what I built and what broke, the links worth keeping, " +
-        "and first word when the Basecamp opens. Occasional. Never spam.\n\n" +
-        "If you didn't request this, ignore this email and nothing happens.\n\n" +
-        "Gautam Talks\ngautamtalks.com";
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { authorization: `Bearer ${env.RESEND_KEY}`, "content-type": "application/json" },
-        body: JSON.stringify({
-          from: env.FROM_ADDRESS || "Gautam Talks <hello@gautamtalks.com>",
-          to: [email],
-          subject: "One click and you're on the Climb Log \u26A1",
-          html,
-          text
-        }),
-      }).catch(() => {});
-    }
-
-    return json({ ok: true, pending: true }, 200, allowed);
+    // From here the answer is fixed and identical for every address. The work that
+    // depends on the address runs after it is sent, so neither the answer, nor its
+    // timing, nor the quota it used can tell new, pending, confirmed or capped apart.
+    // It starts only after a short pause, so that even a busy runtime has delivered
+    // the answer before any of it runs (measured in workerd: without the pause, the
+    // background work of the mail-sending states slowed delivery by about 15 ms),
+    // and the pause has a random part, so its timing cannot be predicted either.
+    // (No storage error reaches the visitor any more: it is logged, without PII.)
+    const pause = ANSWER_FIRST_MS + (crypto.getRandomValues(new Uint32Array(1))[0] % (ANSWER_JITTER_MS + 1));
+    const work = new Promise((r) => setTimeout(r, pause))
+      .then(() => processSignup(env, typed, emailHash, profile))
+      .catch(() => {
+        console.log(JSON.stringify({ task: "subscribe", error: "background_failed" }));
+      });
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
+    else await work; // Cloudflare always passes ctx; only bare test harnesses do not
+    return accepted();
   },
 };

@@ -199,7 +199,7 @@
   hub.innerHTML = `
     <div class="hub-card hub-wide" style="--accent:var(--coral)">
       <span class="hub-icon">\u{1F4EE}</span><h3>THE CLIMB LOG \u00B7 NEWSLETTER</h3>
-      <p>Short field notes from the climb: what I built, what I learned, what's next. Unsubscribing takes one click.</p>
+      <p>Short field notes from the climb: what I built, what I learned, what's next. Unsubscribe any time.</p>
       ${HUB.newsletterAction
         ? `<form class="nl-form" action="${esc(HUB.newsletterAction)}" method="POST">
              <input type="email" name="email" required placeholder="you@email.com" aria-label="Email address">

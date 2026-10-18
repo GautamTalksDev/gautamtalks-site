@@ -1,0 +1,6 @@
+Contact: https://github.com/GautamTalksDev/gautamtalks-site/security/advisories/new
+Contact: mailto:developwith.gt@gmail.com
+Expires: 2027-10-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://gautamtalks.com/.well-known/security.txt
+Policy: https://github.com/GautamTalksDev/gautamtalks-site/blob/main/SECURITY.md

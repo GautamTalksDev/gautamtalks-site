@@ -4,7 +4,7 @@
 
   /* =============== EDIT ZONE =============== */
   const SIGNUP_ENDPOINT = "https://gautamtalks-signup.developwith-gt.workers.dev/subscribe"; // paste your worker URL + "/subscribe" after deploying
-  const TURNSTILE_SITEKEY = "0x4AAAAAAEEpHzVeMh1NpyhY"; // optional: Cloudflare Turnstile site key
+  const TURNSTILE_SITEKEY = "0x4AAAAAAEEpHzVeMh1NpyhY"; // required: the worker refuses signups without a Turnstile token
   const LINKS = {
     calendly: "https://cal.com/gautamtalks/chat",
     discord: "",
@@ -239,9 +239,10 @@
       const out = await res.json().catch(() => ({}));
       if (res.ok && out.ok) {
         state.subscribed = true;
-        if (out.already) status("You're already on the list ⚡ Opening your Hub.", "ok");
-        else if (out.throttled) status("Already sent. Check your inbox, and your spam folder.", "ok");
-        else status("Check your inbox and confirm. One click and you're in ⚡", "ok");
+        // The worker answers new, pending and already-confirmed addresses identically
+        // on purpose (nobody can use the form to test who is on the list), so one
+        // message has to be true for all three.
+        status("Check your inbox (and spam) to confirm. Already on the list? You're all set ⚡", "ok");
         setTimeout(finish, 1400);
       } else {
         const msgs = { invalid_email: "That email doesn't look right.", rate_limited: "Too many tries. Give it an hour.",
@@ -307,12 +308,16 @@
     show("hbIntro");
   }
 
-  /* optional captcha */
+  /* captcha. The action comes from data-action on #turnstileBox (hub/index.html) and
+     must equal TURNSTILE_ACTION in worker/worker.js, which rejects any other action. */
   if (TURNSTILE_SITEKEY) {
     const s = document.createElement("script");
     s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     s.async = true; s.defer = true;
-    s.onload = () => window.turnstile && window.turnstile.render("#turnstileBox", { sitekey: TURNSTILE_SITEKEY });
+    s.onload = () => window.turnstile && window.turnstile.render("#turnstileBox", {
+      sitekey: TURNSTILE_SITEKEY,
+      action: $("#turnstileBox").dataset.action
+    });
     document.head.appendChild(s);
   }
 })();
