@@ -1,6 +1,14 @@
 {
-  "updated": "2026-10-18T09:32:57.195Z",
+  "updated": "2026-10-19T10:43:03.931Z",
   "videos": [
+    {
+      "id": "H-k5wSwGzg4",
+      "title": "I Tried to Catch Overconfident Robots. I Caught Myself Twice.",
+      "url": "https://www.youtube.com/watch?v=H-k5wSwGzg4",
+      "thumb": "https://i.ytimg.com/vi/H-k5wSwGzg4/hqdefault.jpg",
+      "thumbHi": "https://i.ytimg.com/vi/H-k5wSwGzg4/maxresdefault.jpg",
+      "date": "2026-10-18T23:05:02+00:00"
+    },
     {
       "id": "tGtbDNr9qvE",
       "title": "The AI Tool You Approved Is Not the One Running Now",
@@ -16,14 +24,6 @@
       "thumb": "https://i.ytimg.com/vi/C6chAhTWvP4/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/C6chAhTWvP4/maxresdefault.jpg",
       "date": "2026-09-28T04:19:52+00:00"
-    },
-    {
-      "id": "dtZDDx56uG8",
-      "title": "Temperature 0 Is a Lie",
-      "url": "https://www.youtube.com/watch?v=dtZDDx56uG8",
-      "thumb": "https://i.ytimg.com/vi/dtZDDx56uG8/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/dtZDDx56uG8/maxresdefault.jpg",
-      "date": "2026-09-20T23:41:40+00:00"
     }
   ]
 }
