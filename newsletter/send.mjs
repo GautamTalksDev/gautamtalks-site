@@ -325,7 +325,7 @@ function shell(contentHTML, unsubUrl, issueNo) {
   </td></tr>
 
   ${meta.hero ? `<tr><td style="padding:0 0 14px;">
-    <img src="${meta.hero}" alt="${esc(meta.heroAlt || meta.title || meta.subject)}" width="560"
+    <img src="${esc(meta.hero)}" alt="${esc(meta.heroAlt || meta.title || meta.subject)}" width="560"
       style="display:block;width:100%;max-width:560px;height:auto;border-radius:22px;border:0;"></td></tr>` : ""}
   <tr><td style="padding:0;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
