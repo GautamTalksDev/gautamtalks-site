@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T13:58:40.766Z",
+  "updated": "2026-11-21T13:26:13.240Z",
   "videos": [
     {
       "id": "v6X-MkL-AzA",
@@ -8,14 +8,6 @@
       "thumb": "https://i.ytimg.com/vi/v6X-MkL-AzA/hqdefault.jpg",
       "thumbHi": "https://i.ytimg.com/vi/v6X-MkL-AzA/maxresdefault.jpg",
       "date": "2026-11-02T01:05:55+00:00"
-    },
-    {
-      "id": "H-k5wSwGzg4",
-      "title": "I Tried to Catch Overconfident Robots. I Caught Myself Twice.",
-      "url": "https://www.youtube.com/watch?v=H-k5wSwGzg4",
-      "thumb": "https://i.ytimg.com/vi/H-k5wSwGzg4/hqdefault.jpg",
-      "thumbHi": "https://i.ytimg.com/vi/H-k5wSwGzg4/maxresdefault.jpg",
-      "date": "2026-10-18T23:05:02+00:00"
     }
   ]
 }
